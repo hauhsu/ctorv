@@ -30,15 +30,14 @@ enum Tag {
 
 
 struct Token {
-  int tag;
-
   Token(int t): tag(t) {;}
   virtual ~Token(){;}
-
   virtual string to_string() const {
     return "Tag:" + ::to_string(tag);
   }
   friend ostream &operator<< (ostream &os, const Token& token);
+
+  int tag;
 };
 
 ostream &operator<< (ostream &os, const Token& token) {
@@ -48,40 +47,43 @@ ostream &operator<< (ostream &os, const Token& token) {
 
 struct Num: Token {
   Num(const int v): Token(Tag::NUMBER), val(v) {;}
-  int val;
   virtual string to_string() const {
     return "Number: " + ::to_string(val) + " Tag: " + ::to_string(tag);
   }
+
+  int val;
 };
 
 struct Id: Token {
   Id(const string s): Token(Tag::IDENTIFYER), lexeme(s) {;}
-  const string lexeme;
   virtual string to_string() const {
     return "Identifyer: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
   }
+
+  string lexeme;
 };
 
 struct Word: Token {
   Word(const int t, const string s): Token(t), lexeme(s) {;}
-  string lexeme;
   virtual string to_string() const {
     return "Keyword: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
   }
+
+  string lexeme;
 };
 
 struct Punctuator: Token {
   Punctuator(const int tag, const string s): Token(tag), punc(s) {;}
-  string punc;
   virtual string to_string() const {
     return "Punctuator: '" + punc + "'" + " Tag:" + ::to_string(tag);
   }
+
+  string punc;
 };
 
 
 
 typedef shared_ptr<Token> TokenPtr;
-typedef shared_ptr<Word> WordPtr;
 
 class Lexer {
 public:
@@ -171,14 +173,14 @@ public:
           break;
         case '=':
           fin.get();
-          if (fin.peek() == '=') 
+          if (fin.peek() == '=')
             t = Tag::EQ;
           else
             t =  Tag::RIGHT_CURRY;
           break;
         case '|':
           fin.get();
-          if (fin.peek() == '|') 
+          if (fin.peek() == '|')
             t = Tag::EQ;
           else
             t =  Tag::RIGHT_CURRY;
@@ -192,7 +194,6 @@ public:
         exit(1);
       }
     }
-    
     return nullptr;
   }
 
@@ -228,14 +229,15 @@ private:
     punctuators.insert({t, make_shared<Punctuator>(t, punc)});
   }
 
+  static unordered_map<string, shared_ptr<Word>> reserved_keywords;
   static unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> punctuators;
 private:
   ifstream fin;
   unsigned line;
-  unordered_map<string, shared_ptr<Word>> reserved_keywords;
 };
 
 unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> Lexer::punctuators;
+unordered_map<string, shared_ptr<Word>> Lexer::reserved_keywords;
 
 class Parser {
 };
