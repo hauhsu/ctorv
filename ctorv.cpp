@@ -4,23 +4,33 @@
 #include <unordered_map>
 using namespace std;
 
-//bool _DEBUG = true;
-bool _DEBUG = false;
+bool _DEBUG = true;
+//bool _DEBUG = false;
 
 enum Tag {
   // Other ASCII code occupies 0 ~ 127
-    NUM        = 128,
-    ID         ,
-    TRUE       ,
-    FALSE      ,
-    PUNCTUATOR ,
-    RETURN     ,
-    TYPE
+    NUMBER   = 128,
+    IDENTIFYER    ,
+    TRUE          ,
+    FALSE         ,
+    INT           ,
+    LEFT_PAREN    , // (
+    RIGHT_PAREN   , // )
+    LEFT_CURRY    , // {
+    RIGHT_CURRY   , // }
+    ASSIGN        , // =
+    EQ            , // ==
+    BITWISE_OR    , // |
+    LOGIC_OR      , // ||
+    SEMICOLON     , // ;
+    MINUS         , // -
+    PLUS          , // +
+    RETURN        ,
 };
 
 
 struct Token {
-  const int tag;
+  int tag;
 
   Token(int t): tag(t) {;}
   virtual ~Token(){;}
@@ -37,34 +47,34 @@ ostream &operator<< (ostream &os, const Token& token) {
 }
 
 struct Num: Token {
-  Num(const int v): Token(Tag::NUM), val(v) {;}
-  const int val;
+  Num(const int v): Token(Tag::NUMBER), val(v) {;}
+  int val;
   virtual string to_string() const {
-    return "Tag:" + ::to_string(tag) + " Val: " + ::to_string(val);
+    return "Number: " + ::to_string(val) + " Tag: " + ::to_string(tag);
   }
 };
 
 struct Id: Token {
-  Id(const string s): Token(Tag::ID), lexeme(s) {;}
+  Id(const string s): Token(Tag::IDENTIFYER), lexeme(s) {;}
   const string lexeme;
   virtual string to_string() const {
-    return "Tag:" + ::to_string(tag) + " Lexeme: " + lexeme;
+    return "Identifyer: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
   }
 };
 
 struct Word: Token {
   Word(const int t, const string s): Token(t), lexeme(s) {;}
-  const string lexeme;
+  string lexeme;
   virtual string to_string() const {
-    return "Tag:" + ::to_string(tag) + " Lexeme: " + lexeme;
+    return "Keyword: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
   }
 };
 
 struct Punctuator: Token {
-  Punctuator(const string s): Token(Tag::PUNCTUATOR), lexeme(s) {;}
-  const string lexeme;
+  Punctuator(const int tag, const string s): Token(tag), punc(s) {;}
+  string punc;
   virtual string to_string() const {
-    return "Tag:" + ::to_string(tag) + " Lexeme: " + lexeme;
+    return "Punctuator: '" + punc + "'" + " Tag:" + ::to_string(tag);
   }
 };
 
@@ -88,17 +98,19 @@ public:
     char peek = fin.peek();
     for (;peek != EOF;peek = fin.peek()) {
       if (peek == '\n') {
-        if (_DEBUG) {
-          cout << "Reading line " << line << endl;
-        }
         line++;
+        /* if (_DEBUG) { */
+        /*   cout << "Reading line " << line << endl; */
+        /* } */
         fin.get(); // swallow newline and continue
+        continue;
       }
       else if (isspace(peek)) {
         fin.get(); // swallow space and continue
         continue;
       }
 
+      // Parse number
       if (isdigit(peek)) {
         int num = 0;
         do {
@@ -106,9 +118,10 @@ public:
           fin.get(); // swallow it
           peek = fin.peek();
         } while (isdigit(peek));
-        return TokenPtr(new Num(num));
+        return make_shared<Num>(num);
       }
 
+      // Parse identifyer
       if (isalpha(peek) or peek == '_') {
         string id = "";
         do {
@@ -119,19 +132,67 @@ public:
 
         auto reserved = reserved_keywords.find(id);
         if ( reserved == reserved_keywords.end()) {
-          return TokenPtr(new Id(id));
+          return make_shared<Id>(id);
         } else {
-          return TokenPtr(reserved->second);
+          return reserved->second;
         }
-        return TokenPtr(new Id(id));
       }
 
-      if (punctuators.find(peek) != string::npos) {
-        fin.get();
-        return TokenPtr(new Punctuator(string({peek})));
+      // Parse punctuators
+      Tag t;
+      switch (peek) {
+        case '(':
+          t = Tag::LEFT_PAREN;
+          fin.get(); // swallow
+          break;
+        case ')':
+          t = Tag::RIGHT_PAREN;
+          fin.get(); // swallow
+          break;
+        case '{':
+          t = Tag::LEFT_CURRY;
+          fin.get(); // swallow
+          break;
+        case '}':
+          t =  Tag::RIGHT_CURRY;
+          fin.get(); // swallow
+          break;
+        case ';':
+          t = Tag::SEMICOLON;
+          fin.get(); // swallow
+          break;
+        case '+':
+          t = Tag::SEMICOLON;
+          fin.get(); // swallow
+          break;
+        case '-':
+          t = Tag::SEMICOLON;
+          fin.get(); // swallow
+          break;
+        case '=':
+          fin.get();
+          if (fin.peek() == '=') 
+            t = Tag::EQ;
+          else
+            t =  Tag::RIGHT_CURRY;
+          break;
+        case '|':
+          fin.get();
+          if (fin.peek() == '|') 
+            t = Tag::EQ;
+          else
+            t =  Tag::RIGHT_CURRY;
+          break;
+      }
+      auto punc = punctuators.find(t);
+      if (punc != punctuators.end()) {
+        return punc->second;
+      } else {
+        cout << "Cannot parse '" << peek << "' (line " << line << ")" << endl;
+        exit(1);
       }
     }
-
+    
     return nullptr;
   }
 
@@ -139,25 +200,42 @@ public:
     return isalpha(c) or isdigit(c) or c == '_';
   }
 private:
-  auto reserve(WordPtr t) -> void {
-    reserved_keywords.insert({t->lexeme, t});
-  }
   auto init_reserved() -> void {
-    reserve(WordPtr(new Word(Tag::TRUE, "true")));
-    reserve(WordPtr(new Word(Tag::FALSE, "false")));
-    reserve(WordPtr(new Word(Tag::RETURN, "return")));
-    reserve(WordPtr(new Word(Tag::TYPE, "int")));
-  }
-  auto init_punctuators() -> void {
-    punctuators = "()[]{}.+-*%/~!=&|;:?";
+    reserve(Tag::TRUE, "true");
+    reserve(Tag::FALSE, "false");
+    reserve(Tag::RETURN, "return");
+    reserve(Tag::INT, "int");
   }
 
+  auto reserve(Tag t, string word) -> void {
+    reserved_keywords.insert({word, make_shared<Word>(t, word)});
+  }
+
+  auto init_punctuators() -> void {
+    add_punctuator(Tag::LEFT_PAREN, "(");
+    add_punctuator(Tag::RIGHT_PAREN, ")");
+    add_punctuator(Tag::LEFT_CURRY, "{");
+    add_punctuator(Tag::RIGHT_CURRY, "}");
+    add_punctuator(Tag::EQ, "==");
+    add_punctuator(Tag::ASSIGN, "=");
+    add_punctuator(Tag::BITWISE_OR, "|");
+    add_punctuator(Tag::LOGIC_OR, "||");
+    add_punctuator(Tag::SEMICOLON, ";");
+    add_punctuator(Tag::MINUS, "-");
+  }
+
+  auto add_punctuator(Tag t, string punc) -> void {
+    punctuators.insert({t, make_shared<Punctuator>(t, punc)});
+  }
+
+  static unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> punctuators;
 private:
   ifstream fin;
   unsigned line;
-  unordered_map<string, WordPtr> reserved_keywords;
-  string punctuators;
+  unordered_map<string, shared_ptr<Word>> reserved_keywords;
 };
+
+unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> Lexer::punctuators;
 
 class Parser {
 };
@@ -168,10 +246,12 @@ public:
   auto compile(const string& input,
                const string& output="") -> void {
     lexer = Lexer(input);
-    auto t = lexer.getNextToken();
-    while (t) {
-      cout << t->to_string() << endl;
-      t = lexer.getNextToken();
+    while(1) {
+      shared_ptr<Token> t = lexer.getNextToken();
+      if (!t) break;
+      if (_DEBUG) {
+        cout << t->to_string() << endl;
+      }
     }
   }
 private:
