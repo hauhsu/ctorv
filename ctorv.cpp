@@ -164,11 +164,11 @@ public:
           fin.get(); // swallow
           break;
         case '+':
-          t = Tag::SEMICOLON;
+          t = Tag::PLUS;
           fin.get(); // swallow
           break;
         case '-':
-          t = Tag::SEMICOLON;
+          t = Tag::MINUS;
           fin.get(); // swallow
           break;
         case '=':
@@ -222,6 +222,7 @@ private:
     add_punctuator(Tag::BITWISE_OR, "|");
     add_punctuator(Tag::LOGIC_OR, "||");
     add_punctuator(Tag::SEMICOLON, ";");
+    add_punctuator(Tag::PLUS, "+");
     add_punctuator(Tag::MINUS, "-");
   }
 
