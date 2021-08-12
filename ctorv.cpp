@@ -2,245 +2,99 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
+#include "Lexer.hpp"
 using namespace std;
 
 bool _DEBUG = true;
 //bool _DEBUG = false;
 
-enum Tag {
-  // Other ASCII code occupies 0 ~ 127
-    NUMBER   = 128,
-    IDENTIFYER    ,
-    TRUE          ,
-    FALSE         ,
-    INT           ,
-    LEFT_PAREN    , // (
-    RIGHT_PAREN   , // )
-    LEFT_CURRY    , // {
-    RIGHT_CURRY   , // }
-    ASSIGN        , // =
-    EQ            , // ==
-    BITWISE_OR    , // |
-    LOGIC_OR      , // ||
-    SEMICOLON     , // ;
-    MINUS         , // -
-    PLUS          , // +
-    RETURN        ,
+
+enum Type {
+  INT
 };
 
-
-struct Token {
-  Token(int t): tag(t) {;}
-  virtual ~Token(){;}
-  virtual string to_string() const {
-    return "Tag:" + ::to_string(tag);
-  }
-  friend ostream &operator<< (ostream &os, const Token& token);
-
-  int tag;
-};
-
-ostream &operator<< (ostream &os, const Token& token) {
-  os << token.to_string();
-  return os;
-}
-
-struct Num: Token {
-  Num(const int v): Token(Tag::NUMBER), val(v) {;}
-  virtual string to_string() const {
-    return "Number: " + ::to_string(val) + " Tag: " + ::to_string(tag);
-  }
-
-  int val;
-};
-
-struct Id: Token {
-  Id(const string s): Token(Tag::IDENTIFYER), lexeme(s) {;}
-  virtual string to_string() const {
-    return "Identifyer: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
-  }
-
-  string lexeme;
-};
-
-struct Word: Token {
-  Word(const int t, const string s): Token(t), lexeme(s) {;}
-  virtual string to_string() const {
-    return "Keyword: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
-  }
-
-  string lexeme;
-};
-
-struct Punctuator: Token {
-  Punctuator(const int tag, const string s): Token(tag), punc(s) {;}
-  virtual string to_string() const {
-    return "Punctuator: '" + punc + "'" + " Tag:" + ::to_string(tag);
-  }
-
-  string punc;
-};
-
-
-
-typedef shared_ptr<Token> TokenPtr;
-
-class Lexer {
+class Variable {
 public:
-  Lexer(): line(1) {
-    init_reserved();
-    init_punctuators();
+  Variable(const string n, Type t): name(n), type(t){;}
+  string name;
+  Type type;
+};
+
+class SymbolTable {
+public:
+  SymbolTable(shared_ptr<SymbolTable> p): prev_scop(p) {;}
+  auto add(Variable var) -> void {
+    symbols.insert({var.name, var});
   }
-  Lexer(string input): fin(input), line(1) {
-    init_reserved();
-    init_punctuators();
-  }
 
-  auto getNextToken() -> TokenPtr {
-    char peek = fin.peek();
-    for (;peek != EOF;peek = fin.peek()) {
-      if (peek == '\n') {
-        line++;
-        /* if (_DEBUG) { */
-        /*   cout << "Reading line " << line << endl; */
-        /* } */
-        fin.get(); // swallow newline and continue
-        continue;
-      }
-      else if (isspace(peek)) {
-        fin.get(); // swallow space and continue
-        continue;
-      }
+private:
+    shared_ptr<SymbolTable> prev_scop;
+    unordered_map<string, Variable> symbols;
+};
 
-      // Parse number
-      if (isdigit(peek)) {
-        int num = 0;
-        do {
-          num = num * 10 + (peek - '0');
-          fin.get(); // swallow it
-          peek = fin.peek();
-        } while (isdigit(peek));
-        return make_shared<Num>(num);
-      }
 
-      // Parse identifyer
-      if (isalpha(peek) or peek == '_') {
-        string id = "";
-        do {
-          id += peek;
-          fin.get(); // swallow it
-          peek = fin.peek();
-        } while (isValidIdChar(peek));
+class Function;
 
-        auto reserved = reserved_keywords.find(id);
-        if ( reserved == reserved_keywords.end()) {
-          return make_shared<Id>(id);
-        } else {
-          return reserved->second;
-        }
-      }
+class Block {
+  shared_ptr<Block> parent;
+  SymbolTable symtable;
+  shared_ptr<Function> function;
+};
 
-      // Parse punctuators
-      Tag t;
-      switch (peek) {
-        case '(':
-          t = Tag::LEFT_PAREN;
-          fin.get(); // swallow
-          break;
-        case ')':
-          t = Tag::RIGHT_PAREN;
-          fin.get(); // swallow
-          break;
-        case '{':
-          t = Tag::LEFT_CURRY;
-          fin.get(); // swallow
-          break;
-        case '}':
-          t =  Tag::RIGHT_CURRY;
-          fin.get(); // swallow
-          break;
-        case ';':
-          t = Tag::SEMICOLON;
-          fin.get(); // swallow
-          break;
-        case '+':
-          t = Tag::PLUS;
-          fin.get(); // swallow
-          break;
-        case '-':
-          t = Tag::MINUS;
-          fin.get(); // swallow
-          break;
-        case '=':
-          fin.get();
-          if (fin.peek() == '=')
-            t = Tag::EQ;
-          else
-            t =  Tag::RIGHT_CURRY;
-          break;
-        case '|':
-          fin.get();
-          if (fin.peek() == '|')
-            t = Tag::EQ;
-          else
-            t =  Tag::RIGHT_CURRY;
-          break;
+class Function {
+public:
+  string name;
+  Type return_type;
+  vector<Variable> params;
+  shared_ptr<Block> body;
+};
+
+// Recursive decent parser
+class Parser {
+public:
+
+  auto parse(const string& input) -> void {
+    lexer.set_input(input);
+    while(1) {
+      lookahead = lexer.getNextToken();
+      if (!lookahead) break;
+      if (_DEBUG) {
+        cout << lookahead->to_string() << endl;
       }
-      auto punc = punctuators.find(t);
-      if (punc != punctuators.end()) {
-        return punc->second;
-      } else {
-        cout << "Cannot parse '" << peek << "' (line " << line << ")" << endl;
-        exit(1);
+      if (lookahead->tag == Tag::TYPE) {
+        parse_declaration();
       }
     }
-    return nullptr;
-  }
+  };
 
-  auto isValidIdChar(const char c) -> bool {
-    return isalpha(c) or isdigit(c) or c == '_';
-  }
 private:
-  auto init_reserved() -> void {
-    reserve(Tag::TRUE, "true");
-    reserve(Tag::FALSE, "false");
-    reserve(Tag::RETURN, "return");
-    reserve(Tag::INT, "int");
+
+  auto parse_declaration() -> void {
+    /*
+     * grammer:
+     *     declaration -> type identifyer '(' parameters ')'
+     */
+    match(Tag::TYPE);
+    identifier();
   }
 
-  auto reserve(Tag t, string word) -> void {
-    reserved_keywords.insert({word, make_shared<Word>(t, word)});
+  auto match(Tag t) -> void {
+    if (lookahead->tag == t) {
+      lookahead = lexer.getNextToken();
+    } else {
+      cout << "Syntax error";
+    }
   }
 
-  auto init_punctuators() -> void {
-    add_punctuator(Tag::LEFT_PAREN, "(");
-    add_punctuator(Tag::RIGHT_PAREN, ")");
-    add_punctuator(Tag::LEFT_CURRY, "{");
-    add_punctuator(Tag::RIGHT_CURRY, "}");
-    add_punctuator(Tag::EQ, "==");
-    add_punctuator(Tag::ASSIGN, "=");
-    add_punctuator(Tag::BITWISE_OR, "|");
-    add_punctuator(Tag::LOGIC_OR, "||");
-    add_punctuator(Tag::SEMICOLON, ";");
-    add_punctuator(Tag::PLUS, "+");
-    add_punctuator(Tag::MINUS, "-");
+  auto identifier() -> void {
+    
   }
 
-  auto add_punctuator(Tag t, string punc) -> void {
-    punctuators.insert({t, make_shared<Punctuator>(t, punc)});
-  }
-
-  static unordered_map<string, shared_ptr<Word>> reserved_keywords;
-  static unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> punctuators;
 private:
-  ifstream fin;
-  unsigned line;
-};
-
-unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> Lexer::punctuators;
-unordered_map<string, shared_ptr<Word>> Lexer::reserved_keywords;
-
-class Parser {
+  Lexer lexer;
+  shared_ptr<Token> lookahead;
+  unordered_map<string, Function> functions;
 };
 
 
@@ -248,17 +102,9 @@ class Compiler {
 public:
   auto compile(const string& input,
                const string& output="") -> void {
-    lexer = Lexer(input);
-    while(1) {
-      shared_ptr<Token> t = lexer.getNextToken();
-      if (!t) break;
-      if (_DEBUG) {
-        cout << t->to_string() << endl;
-      }
-    }
+    parser.parse(input);
   }
 private:
-  Lexer lexer;
   Parser parser;
 };
 
