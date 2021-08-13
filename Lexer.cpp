@@ -7,14 +7,15 @@
 
 using namespace std;
 
-
-string Token::to_string() const {
-  return "Tag:" + ::to_string(tag);
-}
+// Token
 
 ostream &operator<< (ostream &os, const Token& token) {
   os << token.to_string();
   return os;
+}
+
+string Token::to_string() const {
+  return "Tag:" + ::to_string(tag);
 }
 
 string Num::to_string() const {
@@ -22,7 +23,7 @@ string Num::to_string() const {
 }
 
 string Id::to_string() const {
-  return "Identifyer: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
+  return "Identifier: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
 }
 
 string Word::to_string() const {
@@ -33,17 +34,20 @@ string Punctuator::to_string() const {
   return "Punctuator: '" + punc + "'" + " Tag:" + ::to_string(tag);
 }
 
-unordered_map<string, shared_ptr<Word>> Lexer::reserved_keywords;
-unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> Lexer::punctuators;
+// Lexer
 
 Lexer::Lexer(): line(1) {
   init_reserved();
   init_punctuators();
 }
+
 Lexer::Lexer(const string& input): fin(input), line(1) {
   init_reserved();
   init_punctuators();
 }
+
+unordered_map<string, shared_ptr<Word>> Lexer::reserved_keywords;
+unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> Lexer::punctuators;
 
 
 auto Lexer::getNextToken() -> TokenPtr {
@@ -95,47 +99,46 @@ auto Lexer::getNextToken() -> TokenPtr {
     switch (peek) {
       case '(':
         t = Tag::LEFT_PAREN;
-        fin.get(); // swallow
         break;
       case ')':
         t = Tag::RIGHT_PAREN;
-        fin.get(); // swallow
         break;
       case '{':
         t = Tag::LEFT_CURRY;
-        fin.get(); // swallow
         break;
       case '}':
         t =  Tag::RIGHT_CURRY;
-        fin.get(); // swallow
         break;
       case ';':
         t = Tag::SEMICOLON;
-        fin.get(); // swallow
         break;
       case '+':
         t = Tag::PLUS;
-        fin.get(); // swallow
         break;
       case '-':
         t = Tag::MINUS;
-        fin.get(); // swallow
+        break;
+      case ',':
+        t = Tag::COMMA;
         break;
       case '=':
-        fin.get();
-        if (fin.peek() == '=')
+        if (fin.peek() == '=') {
+          fin.get();
           t = Tag::EQ;
+        }
         else
-          t =  Tag::RIGHT_CURRY;
+          t =  Tag::ASSIGN;
         break;
       case '|':
-        fin.get();
-        if (fin.peek() == '|')
-          t = Tag::EQ;
+        if (fin.peek() == '|') {
+          fin.get();
+          t = Tag::LOGIC_OR;
+        }
         else
-          t =  Tag::RIGHT_CURRY;
+          t =  Tag::BITWISE_OR;
         break;
     }
+    fin.get(); // swallow
     auto punc = punctuators.find(t);
     if (punc != punctuators.end()) {
       return punc->second;
@@ -170,6 +173,7 @@ auto Lexer::init_punctuators() -> void {
   add_punctuator(Tag::SEMICOLON, ";");
   add_punctuator(Tag::PLUS, "+");
   add_punctuator(Tag::MINUS, "-");
+  add_punctuator(Tag::COMMA, ",");
 }
 
 auto Lexer::add_punctuator(Tag t, string punc) -> void {

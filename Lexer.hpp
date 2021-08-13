@@ -27,6 +27,7 @@ enum Tag {
     SEMICOLON     , // ;
     MINUS         , // -
     PLUS          , // +
+    COMMA         , // ,
 };
 
 struct Token {
