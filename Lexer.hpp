@@ -84,7 +84,7 @@ private:
   auto init_punctuators() -> void;
   auto add_punctuator(Tag t, string punc) -> void;
   static unordered_map<string, shared_ptr<Word>> reserved_keywords;
-  static unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> punctuators;
+  static unordered_map<string, shared_ptr<Punctuator>> punctuators;
 
 private:
   ifstream fin;

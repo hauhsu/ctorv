@@ -47,7 +47,7 @@ Lexer::Lexer(const string& input): fin(input), line(1) {
 }
 
 unordered_map<string, shared_ptr<Word>> Lexer::reserved_keywords;
-unordered_map<Tag, shared_ptr<Punctuator>, std::hash<int>> Lexer::punctuators;
+unordered_map<string, shared_ptr<Punctuator>> Lexer::punctuators;
 
 
 auto Lexer::getNextToken() -> TokenPtr {
@@ -95,51 +95,29 @@ auto Lexer::getNextToken() -> TokenPtr {
     }
 
     // Parse punctuators
-    Tag t;
+    string punc_str;
     switch (peek) {
-      case '(':
-        t = Tag::LEFT_PAREN;
-        break;
-      case ')':
-        t = Tag::RIGHT_PAREN;
-        break;
-      case '{':
-        t = Tag::LEFT_BRACE;
-        break;
-      case '}':
-        t =  Tag::RIGHT_BRACE;
-        break;
-      case ';':
-        t = Tag::SEMICOLON;
-        break;
-      case '+':
-        t = Tag::PLUS;
-        break;
-      case '-':
-        t = Tag::MINUS;
-        break;
-      case ',':
-        t = Tag::COMMA;
-        break;
       case '=':
         if (fin.peek() == '=') {
           fin.get();
-          t = Tag::EQ;
+          punc_str = "==";
         }
         else
-          t =  Tag::ASSIGN;
+          punc_str = "=";
         break;
       case '|':
         if (fin.peek() == '|') {
           fin.get();
-          t = Tag::LOGIC_OR;
+          punc_str = "||";
         }
         else
-          t =  Tag::BITWISE_OR;
+          punc_str = "|";
         break;
+      default:
+        punc_str = peek;
     }
     fin.get(); // swallow
-    auto punc = punctuators.find(t);
+    auto punc = punctuators.find(punc_str);
     if (punc != punctuators.end()) {
       return punc->second;
     } else {
@@ -177,6 +155,6 @@ auto Lexer::init_punctuators() -> void {
 }
 
 auto Lexer::add_punctuator(Tag t, string punc) -> void {
-  punctuators.insert({t, make_shared<Punctuator>(t, punc)});
+  punctuators.insert({punc, make_shared<Punctuator>(t, punc)});
 }
 
