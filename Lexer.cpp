@@ -104,10 +104,10 @@ auto Lexer::getNextToken() -> TokenPtr {
         t = Tag::RIGHT_PAREN;
         break;
       case '{':
-        t = Tag::LEFT_CURRY;
+        t = Tag::LEFT_BRACE;
         break;
       case '}':
-        t =  Tag::RIGHT_CURRY;
+        t =  Tag::RIGHT_BRACE;
         break;
       case ';':
         t = Tag::SEMICOLON;
@@ -164,8 +164,8 @@ auto Lexer::reserve(Tag t, string word) -> void {
 auto Lexer::init_punctuators() -> void {
   add_punctuator(Tag::LEFT_PAREN, "(");
   add_punctuator(Tag::RIGHT_PAREN, ")");
-  add_punctuator(Tag::LEFT_CURRY, "{");
-  add_punctuator(Tag::RIGHT_CURRY, "}");
+  add_punctuator(Tag::LEFT_BRACE, "{");
+  add_punctuator(Tag::RIGHT_BRACE, "}");
   add_punctuator(Tag::EQ, "==");
   add_punctuator(Tag::ASSIGN, "=");
   add_punctuator(Tag::BITWISE_OR, "|");

@@ -18,8 +18,8 @@ enum Tag {
     // punctuators
     LEFT_PAREN    , // (
     RIGHT_PAREN   , // )
-    LEFT_CURRY    , // {
-    RIGHT_CURRY   , // }
+    LEFT_BRACE    , // {
+    RIGHT_BRACE   , // }
     ASSIGN        , // =
     EQ            , // ==
     BITWISE_OR    , // |
