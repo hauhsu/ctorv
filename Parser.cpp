@@ -17,7 +17,7 @@ auto Parser::parse(const string& input) -> void {
 }
 
 ostream &operator<< (ostream &os, const Variable& var) {
-  os << "\"" << var.name.lexeme << "\": " << var.type.lexeme;
+  os <<  var.name.lexeme << ":" << var.type.lexeme;
   return os;
 }
 
@@ -41,12 +41,34 @@ auto Parser::parseDecl() -> void {
     cout << "Parsed variable declaration: " << endl;
     cout << "type: " << dynamic_pointer_cast<Word>(type)->lexeme << endl;
     cout << "name: " << dynamic_pointer_cast<Id>(id)->lexeme << endl;
-  } else if (lookahead->tag == Tag::LEFT_PAREN) {
-    cout << "Parsed function declaration: " << endl;
+    return;
+  }
+
+  if (lookahead->tag == Tag::LEFT_PAREN) {
     match(Tag::LEFT_PAREN);
     auto params = parseParams();
-    printVector(params);
     match(Tag::RIGHT_PAREN);
+
+    auto f = make_shared<Function>();
+    f->name = dynamic_pointer_cast<Id>(id)->lexeme;
+    f->params = params;
+    addFunc(f);
+
+    if (lookahead->tag == Tag::SEMICOLON) {
+      cout << "Parsed function declaration: " << endl;
+      cout << "Name: " << f->name << endl;
+      cout << "Parameters: " << endl;
+      printVector(f->params);
+      return;
+    }
+    if (lookahead->tag == Tag::LEFT_BRACE) {
+      cout << "Parsed function definition: " << endl;
+      cout << "Name: " << f->name << endl;
+      cout << "Parameters: " << endl;
+      printVector(f->params);
+      return;
+    }
+    cout << "Syntax error.";
   }
 }
 
@@ -70,6 +92,19 @@ auto Parser::parseParams() -> Params {
   return params;
 }
 
+auto Parser::parseBlock() -> Block {
+  ;
+}
+
+auto parseStatm() -> void {
+
+}
+
+/*
+ * Auxilary methods
+ *
+ */
+
 auto Parser::match(Tag t) -> TokenPtr {
   if (lookahead->tag == t) {
     auto prevLookahead = lookahead;
@@ -81,3 +116,7 @@ auto Parser::match(Tag t) -> TokenPtr {
   exit(1);
 }
 
+
+auto Parser::addFunc(shared_ptr<Function> f) -> void {
+  functions.insert({f->name, f});
+}

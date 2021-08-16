@@ -40,6 +40,7 @@ private:
 class Function;
 
 class Block {
+public:
   shared_ptr<Block> parent;
   SymbolTable symtable;
   shared_ptr<Function> function;
@@ -62,15 +63,18 @@ public:
 
 private:
 
-  auto parseDecl() -> void;
+  auto parseDecl() -> void;  // add to **functions** or **symtable**
   auto parseParams() -> Params;
+  auto parseBlock() -> Block;
+  auto parseStatm() -> void;
+  auto parseIfStatm() -> void;
 
   auto match(Tag t) -> TokenPtr;
-
+  auto addFunc(shared_ptr<Function>) -> void;
 
 private:
   Lexer lexer;
   shared_ptr<Token> lookahead;
-  unordered_map<string, Function> functions;
+  unordered_map<string, shared_ptr<Function>> functions;
 };
 #endif /* end of include guard: PARSER_CPP_UDVXJZBP */
