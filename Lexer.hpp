@@ -13,8 +13,10 @@ enum Tag {
     TRUE          ,
     FALSE         ,
     RETURN        ,
+    IF            ,
+    ELSE          ,
     //   type
-    TYPE    ,
+    TYPE          ,
     // punctuators
     LEFT_PAREN    , // (
     RIGHT_PAREN   , // )

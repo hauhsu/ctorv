@@ -11,13 +11,13 @@ auto Parser::parse(const string& input) -> void {
       cout << lookahead->to_string() << endl;
     }
     if (lookahead->tag == Tag::TYPE) {
-      parseDecl();
+      parseDecl(nullptr);
     }
   }
 }
 
 ostream &operator<< (ostream &os, const Variable& var) {
-  os <<  var.name.lexeme << ":" << var.type.lexeme;
+  os <<  var.name << ":" << var.typeLexeme;
   return os;
 }
 
@@ -28,19 +28,23 @@ void printVector(vector<T>& v) {
   }
 }
 
-auto Parser::parseDecl() -> void {
+auto Parser::parseDecl(shared_ptr<BlockNode> scope) -> void {
   /*
    * grammer:
    *     declaration -> TYPE ID '(' parameters ')';  //function definition
    *                 |  TYPE ID '(' parameters ')' block  //function declaration
    *                 |  TYPE ID; // variable
    */
-  auto type = match(Tag::TYPE);
-  auto id = match(Tag::IDENTIFIER);
+  auto type = dynamic_pointer_cast<Word>(match(Tag::TYPE));
+  auto id = dynamic_pointer_cast<Id>(match(Tag::IDENTIFIER));
   if (lookahead->tag == Tag::SEMICOLON) {
     cout << "Parsed variable declaration: " << endl;
-    cout << "type: " << dynamic_pointer_cast<Word>(type)->lexeme << endl;
-    cout << "name: " << dynamic_pointer_cast<Id>(id)->lexeme << endl;
+    cout << "type: " << type->lexeme << endl;
+    cout << "name: " << id->lexeme << endl;
+    if (scope == nullptr) {
+      // global
+      symTables[0]->add(Variable(type->lexeme, id->lexeme));
+    }
     return;
   }
 
@@ -49,7 +53,7 @@ auto Parser::parseDecl() -> void {
     auto params = parseParams();
     match(Tag::RIGHT_PAREN);
 
-    auto f = make_shared<Function>();
+    auto f = make_shared<FunctionNode>();
     f->name = dynamic_pointer_cast<Id>(id)->lexeme;
     f->params = params;
     addFunc(f);
@@ -82,7 +86,7 @@ auto Parser::parseParams() -> Params {
   if (lookahead->tag == Tag::TYPE) {
     auto type = dynamic_pointer_cast<Word>(match(Tag::TYPE));
     auto id = dynamic_pointer_cast<Id>(match(Tag::IDENTIFIER));
-    params.push_back(Variable(*id, *type));
+    params.push_back(Variable(type->lexeme, id->lexeme));
     if (lookahead->tag == Tag::COMMA) {
       match(Tag::COMMA);
       auto tmp = parseParams();
@@ -92,8 +96,19 @@ auto Parser::parseParams() -> Params {
   return params;
 }
 
-auto Parser::parseBlock() -> Block {
-  ;
+auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> BlockNode {
+  auto blk = make_shared<BlockNode>();
+  blk->parent = parent;
+
+  if (lookahead->tag == Tag::IF) {
+    /* auto ifblk = make_shared<IFNode>(); */
+    /* if (lookahead->tag == Tag::ELSE) { */
+    /* } */
+
+  }
+
+
+  return *blk;
 }
 
 auto parseStatm() -> void {
@@ -117,6 +132,6 @@ auto Parser::match(Tag t) -> TokenPtr {
 }
 
 
-auto Parser::addFunc(shared_ptr<Function> f) -> void {
+auto Parser::addFunc(shared_ptr<FunctionNode> f) -> void {
   functions.insert({f->name, f});
 }

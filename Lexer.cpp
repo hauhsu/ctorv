@@ -133,6 +133,8 @@ auto Lexer::init_reserved() -> void {
   reserve(Tag::FALSE, "false");
   reserve(Tag::RETURN, "return");
   reserve(Tag::TYPE, "int");
+  reserve(Tag::IF, "if");
+  reserve(Tag::ELSE, "else");
 }
 
 auto Lexer::reserve(Tag t, string word) -> void {

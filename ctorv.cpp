@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <vector>
 #include "Parser.hpp"
+#include "RISCV.hpp"
+#include "AST.hpp"
 using namespace std;
 
 bool _DEBUG = true;
@@ -16,9 +18,11 @@ public:
   auto compile(const string& input,
                const string& output="") -> void {
     parser.parse(input);
+    rv.emitMachineCode(*parser.symTables[0], cout);
   }
 private:
   Parser parser;
+  RISCV rv;
 };
 
 int main(int argc, char *argv[])
