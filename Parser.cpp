@@ -2,7 +2,8 @@
 
 
 //Recursive decent parser
-auto Parser::parse(const string& input) -> void {
+auto Parser::parse(const string& input) -> shared_ptr<CompileUnit> {
+  cu = make_shared<CompileUnit>();
   lexer.set_input(input);
   while(1) {
     lookahead = lexer.getNextToken();
@@ -14,6 +15,7 @@ auto Parser::parse(const string& input) -> void {
       parseDecl(nullptr);
     }
   }
+  return cu;
 }
 
 ostream &operator<< (ostream &os, const Variable& var) {
@@ -43,7 +45,9 @@ auto Parser::parseDecl(shared_ptr<BlockNode> scope) -> void {
     cout << "name: " << id->lexeme << endl;
     if (scope == nullptr) {
       // global
-      symTables[0]->add(Variable(type->lexeme, id->lexeme));
+      cu->symbolTables[0]->add(Variable(type->lexeme, id->lexeme));
+    } else {
+      scope->symtable->add(Variable(type->lexeme, id->lexeme));
     }
     return;
   }
@@ -66,11 +70,11 @@ auto Parser::parseDecl(shared_ptr<BlockNode> scope) -> void {
       return;
     }
     if (lookahead->tag == Tag::LEFT_BRACE) {
+      f->body = parseBlock(scope);
       cout << "Parsed function definition: " << endl;
       cout << "Name: " << f->name << endl;
       cout << "Parameters: " << endl;
       printVector(f->params);
-      return;
     }
     cout << "Syntax error.";
   }
@@ -96,7 +100,7 @@ auto Parser::parseParams() -> Params {
   return params;
 }
 
-auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> BlockNode {
+auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> shared_ptr<BlockNode> {
   auto blk = make_shared<BlockNode>();
   blk->parent = parent;
 
@@ -108,7 +112,7 @@ auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> BlockNode {
   }
 
 
-  return *blk;
+  return blk;
 }
 
 auto parseStatm() -> void {
@@ -133,5 +137,6 @@ auto Parser::match(Tag t) -> TokenPtr {
 
 
 auto Parser::addFunc(shared_ptr<FunctionNode> f) -> void {
-  functions.insert({f->name, f});
+  assert(cu);
+  cu->functions.insert({f->name, f});
 }

@@ -44,10 +44,10 @@ class SymbolTable {
 public:
   SymbolTable(){;}
   SymbolTable(shared_ptr<SymbolTable> p): prev_scop(p) {;}
+
   auto add(Variable var) -> void {
     symbols.insert({var.name, var});
   }
-  auto emitMachineCode(ofstream &os) -> void;
 
   unordered_map<string, Variable> symbols;
   auto isGlobal() -> bool {
@@ -73,7 +73,7 @@ struct BlockNode:ASTNode {
   auto virtual genIR(ofstream os) -> void{;}
 };
 
-class ExpNode: ASTNode {
+class ExpressionNode: ASTNode {
   auto virtual genIR(ofstream os) -> void{;}
 };
 
@@ -82,7 +82,7 @@ public:
   auto genIR(ofstream os) -> void{;}
 
 private:
-  ExpNode condExp;
+  ExpressionNode condExp;
   BlockNode body;
 };
 
@@ -96,5 +96,6 @@ public:
   Params params;
   shared_ptr<BlockNode> body;
 };
+
 
 #endif /* end of include guard: AST_H_L58SO2TY */

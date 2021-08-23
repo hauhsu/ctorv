@@ -17,11 +17,13 @@ class Compiler {
 public:
   auto compile(const string& input,
                const string& output="") -> void {
-    parser.parse(input);
-    rv.emitMachineCode(*parser.symTables[0], cout);
+    this->compileUnit = parser.parse(input);
+    rv.emitMachineCode(*compileUnit->symbolTables[0], cout);
   }
 private:
   Parser parser;
+  shared_ptr<CompileUnit> compileUnit;
+
   RISCV rv;
 };
 

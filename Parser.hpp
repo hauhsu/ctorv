@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <iostream>
 #include "AST.hpp"
+#include "CompileUnit.hpp"
 using namespace std;
 
 extern bool _DEBUG;
@@ -16,20 +17,14 @@ extern bool _DEBUG;
 class Parser {
 public:
 
-  Parser() {
-    // global symbol table
-    symTables.push_back(make_shared<SymbolTable>());
-  }
-  auto parse(const string& input) -> void;
+  Parser() {;}
+  auto parse(const string& input) -> shared_ptr<CompileUnit>;
 
-public:
-  vector<shared_ptr<SymbolTable>> symTables;
-  unordered_map<string, shared_ptr<FunctionNode>> functions;
 
 private:
   auto parseDecl(shared_ptr<BlockNode> scope) -> void;  // add to **functions** or **symTables**
   auto parseParams() -> Params;
-  auto parseBlock(shared_ptr<BlockNode> parent) -> BlockNode;
+  auto parseBlock(shared_ptr<BlockNode> parent) -> shared_ptr<BlockNode>;
   auto parseStatm() -> void;
   auto parseIfStatm() -> void;
 
@@ -39,5 +34,6 @@ private:
 private:
   Lexer lexer;
   shared_ptr<Token> lookahead;
+  shared_ptr<CompileUnit> cu;
 };
 #endif /* end of include guard: PARSER_CPP_UDVXJZBP */

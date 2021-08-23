@@ -66,9 +66,14 @@ enum OP{
 /* IR instruction */
 struct IR {
     OP op;     /* IR operation */
-    int dst;
-    int param1;
-    int param2;
+    int addr0; /* Usually destination */
+    int addr1; /* Usually first operand */
+    int addr2; /* Usually second operand */
+    IR(OP _op, int _addr0, int _addr1, int _addr2):
+      op(_op),
+      addr0(_addr0),
+      addr1(_addr1),
+      addr2(_addr2){;}
 };
 
 
