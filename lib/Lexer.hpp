@@ -3,6 +3,7 @@
 
 #include <string>
 #include <fstream>
+#include <sstream>
 #include <unordered_map>
 using namespace std;
 enum Tag {
@@ -71,8 +72,11 @@ public:
   Lexer();
   Lexer(const string& input);
 
-  auto set_input(const string& input) -> void {
-    fin.open(input);
+  auto set_input_file(const string& input) -> void {
+    ins =  make_shared<ifstream>(input);
+  }
+  auto set_input_string(const string& input) -> void {
+    ins = make_shared<istringstream>(input);
   }
   auto getNextToken() -> TokenPtr;
 
@@ -89,7 +93,7 @@ private:
   static unordered_map<string, shared_ptr<Punctuator>> punctuators;
 
 private:
-  ifstream fin;
+  shared_ptr<istream> ins;
   unsigned line;
 };
 #endif /* ifndef LEXER_H */

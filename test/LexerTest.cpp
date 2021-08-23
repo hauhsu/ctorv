@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 
+#include "Lexer.hpp"
+
 // Demonstrate some basic assertions.
-TEST(HelloTest, BasicAssertions) {
-  // Expect two strings not to be equal.
-  EXPECT_STRNE("hello", "world");
-  // Expect equality.
-  EXPECT_EQ(7 * 6, 42);
+TEST(ParsePunctuator, BasicPunctuators) {
+  auto lexer = Lexer();
+  lexer.set_input_string("(");
+  auto punc = dynamic_pointer_cast<Punctuator>(lexer.getNextToken());
+  EXPECT_EQ(punc->tag, Tag::LEFT_PAREN);
+  EXPECT_EQ(punc->punc, "(");
 }

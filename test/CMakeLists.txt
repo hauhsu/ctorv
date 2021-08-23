@@ -8,12 +8,15 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
+
+
 add_executable(
   LexerTest
   LexerTest.cpp
 )
 target_link_libraries(
   LexerTest
+  lctorv
   gtest_main
 )
 

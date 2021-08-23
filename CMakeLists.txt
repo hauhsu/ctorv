@@ -8,5 +8,7 @@ set (CMAKE_CXX_STANDARD 11)
 # Generate comiple database for YCM
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_subdirectory(src)
+include_directories(${CMAKE_SOURCE_DIR}/lib)
+add_subdirectory(lib)
+add_subdirectory(ctorv)
 add_subdirectory(test)

@@ -4,7 +4,7 @@
 //Recursive decent parser
 auto Parser::parse(const string& input) -> shared_ptr<CompileUnit> {
   cu = make_shared<CompileUnit>();
-  lexer.set_input(input);
+  lexer.set_input_file(input);
   while(1) {
     lookahead = lexer.getNextToken();
     if (!lookahead) break;

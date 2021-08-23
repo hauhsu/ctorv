@@ -41,28 +41,23 @@ Lexer::Lexer(): line(1) {
   init_punctuators();
 }
 
-Lexer::Lexer(const string& input): fin(input), line(1) {
-  init_reserved();
-  init_punctuators();
-}
-
 unordered_map<string, shared_ptr<Word>> Lexer::reserved_keywords;
 unordered_map<string, shared_ptr<Punctuator>> Lexer::punctuators;
 
 
 auto Lexer::getNextToken() -> TokenPtr {
-  char peek = fin.peek();
-  for (;peek != EOF;peek = fin.peek()) {
+  char peek = ins->peek();
+  for (;peek != EOF;peek = ins->peek()) {
     if (peek == '\n') {
       line++;
       /* if (_DEBUG) { */
       /*   cout << "Reading line " << line << endl; */
       /* } */
-      fin.get(); // swallow newline and continue
+      ins->get(); // swallow newline and continue
       continue;
     }
     else if (isspace(peek)) {
-      fin.get(); // swallow space and continue
+      ins->get(); // swallow space and continue
       continue;
     }
 
@@ -71,8 +66,8 @@ auto Lexer::getNextToken() -> TokenPtr {
       int num = 0;
       do {
         num = num * 10 + (peek - '0');
-        fin.get(); // swallow it
-        peek = fin.peek();
+        ins->get(); // swallow it
+        peek = ins->peek();
       } while (isdigit(peek));
       return make_shared<Num>(num);
     }
@@ -82,8 +77,8 @@ auto Lexer::getNextToken() -> TokenPtr {
       string id = "";
       do {
         id += peek;
-        fin.get(); // swallow it
-        peek = fin.peek();
+        ins->get(); // swallow it
+        peek = ins->peek();
       } while (isValidIdChar(peek));
 
       auto reserved = reserved_keywords.find(id);
@@ -98,16 +93,16 @@ auto Lexer::getNextToken() -> TokenPtr {
     string punc_str;
     switch (peek) {
       case '=':
-        if (fin.peek() == '=') {
-          fin.get();
+        if (ins->peek() == '=') {
+          ins->get();
           punc_str = "==";
         }
         else
           punc_str = "=";
         break;
       case '|':
-        if (fin.peek() == '|') {
-          fin.get();
+        if (ins->peek() == '|') {
+          ins->get();
           punc_str = "||";
         }
         else
@@ -116,7 +111,7 @@ auto Lexer::getNextToken() -> TokenPtr {
       default:
         punc_str = peek;
     }
-    fin.get(); // swallow
+    ins->get(); // swallow
     auto punc = punctuators.find(punc_str);
     if (punc != punctuators.end()) {
       return punc->second;
