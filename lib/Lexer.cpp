@@ -90,28 +90,22 @@ auto Lexer::getNextToken() -> TokenPtr {
     }
 
     // Parse punctuators
-    string punc_str;
-    switch (peek) {
+    string punc_str(1, peek);
+    ins->get();
+    switch (punc_str[0]) {
       case '=':
         if (ins->peek() == '=') {
-          ins->get();
           punc_str = "==";
+          ins->get();
         }
-        else
-          punc_str = "=";
         break;
       case '|':
         if (ins->peek() == '|') {
-          ins->get();
           punc_str = "||";
+          ins->get();
         }
-        else
-          punc_str = "|";
         break;
-      default:
-        punc_str = peek;
     }
-    ins->get(); // swallow
     auto punc = punctuators.find(punc_str);
     if (punc != punctuators.end()) {
       return punc->second;

@@ -5,6 +5,7 @@ project(ctorv)
 
 set (CMAKE_CXX_STANDARD 11)
 
+enable_testing()
 # Generate comiple database for YCM
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
