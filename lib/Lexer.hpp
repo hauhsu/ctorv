@@ -70,14 +70,15 @@ typedef shared_ptr<Token> TokenPtr;
 class Lexer {
 public:
   Lexer();
-  Lexer(const string& input);
 
-  auto set_input_file(const string& input) -> void {
-    ins =  make_shared<ifstream>(input);
+  auto setInput(ifstream& input) -> void {
+    ins = &input;
   }
-  auto set_input_string(const string& input) -> void {
-    ins = make_shared<istringstream>(input);
+
+  auto setInput(stringstream& input) -> void {
+    ins = &input;
   }
+
   auto getNextToken() -> TokenPtr;
 
   auto isValidIdChar(const char c) -> bool {
@@ -93,7 +94,7 @@ private:
   static unordered_map<string, shared_ptr<Punctuator>> punctuators;
 
 private:
-  shared_ptr<istream> ins;
+  istream *ins;  // input stream
   unsigned line;
 };
 #endif /* ifndef LEXER_H */

@@ -17,7 +17,12 @@ class Compiler {
 public:
   auto compile(const string& input,
                const string& output="") -> void {
-    this->compileUnit = parser.parse(input);
+    ifstream ifs(input);
+    if (ifs.fail()) {
+      cerr << "Cannot open file: " << input << endl;
+      exit(1);
+    }
+    this->compileUnit = parser.parse(ifs);
     rv.emitMachineCode(*compileUnit->symbolTables[0], cout);
   }
 private:

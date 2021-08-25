@@ -110,7 +110,7 @@ auto Lexer::getNextToken() -> TokenPtr {
     if (punc != punctuators.end()) {
       return punc->second;
     } else {
-      cout << "Cannot parse '" << peek << "' (line " << line << ")" << endl;
+      cout << "Lexer: Cannot parse '" << punc_str << "' (line " << line << ")" << endl;
       exit(1);
     }
   }

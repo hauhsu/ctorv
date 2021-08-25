@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
-
+#include <sstream>
 #include "Lexer.hpp"
 
 // Demonstrate some basic assertions.
 TEST(ParsePunctuator, BasicPunctuators) {
+  stringstream input("(){}==+-=;||,|");
   auto lexer = Lexer();
-  lexer.set_input_string("(){}==+-=;||,|");
+  lexer.setInput(input);
 
   auto punc = dynamic_pointer_cast<Punctuator>(lexer.getNextToken());
   EXPECT_EQ(punc->tag, Tag::LEFT_PAREN);
@@ -57,8 +58,9 @@ TEST(ParsePunctuator, BasicPunctuators) {
 }
 
 TEST(ParseKeyWords, Basic) {
+  stringstream input("true false return int if else");
   auto lexer = Lexer();
-  lexer.set_input_string("true false return int if else");
+  lexer.setInput(input);
 
   auto word = dynamic_pointer_cast<Word>(lexer.getNextToken());
   EXPECT_EQ(word->tag, Tag::TRUE);
@@ -86,8 +88,9 @@ TEST(ParseKeyWords, Basic) {
 }
 
 TEST(ParseId, Basic) {
+  stringstream input("variable var_name _var");
   auto lexer = Lexer();
-  lexer.set_input_string("variable var_name _var");
+  lexer.setInput(input);
 
   auto id = dynamic_pointer_cast<Id>(lexer.getNextToken());
   EXPECT_EQ(id->tag, Tag::IDENTIFIER);

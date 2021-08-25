@@ -1,10 +1,19 @@
 #include "Parser.hpp"
 
 
+auto Parser::parse(ifstream& input) -> shared_ptr<CompileUnit> {
+  lexer.setInput(input);
+  return parse();
+}
+
+auto Parser::parse(stringstream& input) -> shared_ptr<CompileUnit> {
+  lexer.setInput(input);
+  return parse();
+}
+
 //Recursive decent parser
-auto Parser::parse(const string& input) -> shared_ptr<CompileUnit> {
+auto Parser::parse() -> shared_ptr<CompileUnit> {
   cu = make_shared<CompileUnit>();
-  lexer.set_input_file(input);
   while(1) {
     lookahead = lexer.getNextToken();
     if (!lookahead) break;

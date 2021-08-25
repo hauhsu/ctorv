@@ -18,10 +18,12 @@ class Parser {
 public:
 
   Parser() {;}
-  auto parse(const string& input) -> shared_ptr<CompileUnit>;
+  auto parse(stringstream& input) -> shared_ptr<CompileUnit>;
+  auto parse(ifstream& input) -> shared_ptr<CompileUnit>;
 
 
 private:
+  auto parse() -> shared_ptr<CompileUnit>;
   auto parseDecl(shared_ptr<BlockNode> scope) -> void;  // add to **functions** or **symTables**
   auto parseParams() -> Params;
   auto parseBlock(shared_ptr<BlockNode> parent) -> shared_ptr<BlockNode>;
