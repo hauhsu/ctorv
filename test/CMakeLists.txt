@@ -13,6 +13,16 @@ add_executable(
   LexerTest
   LexerTest.cpp
 )
+
+add_executable(
+  ParserTest
+  ParserTest.cpp
+)
+target_link_libraries(
+  ParserTest
+  lctorv
+  gtest_main
+)
 target_link_libraries(
   LexerTest
   lctorv

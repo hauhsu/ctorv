@@ -40,10 +40,10 @@ public:
 
 };
 
-class SymbolTable {
+class Environment {
 public:
-  SymbolTable(){;}
-  SymbolTable(shared_ptr<SymbolTable> p): prev_scop(p) {;}
+  Environment(){;}
+  Environment(shared_ptr<Environment> p): prev_scop(p) {;}
 
   auto add(Variable var) -> void {
     symbols.insert({var.name, var});
@@ -53,7 +53,7 @@ public:
   auto isGlobal() -> bool {
     return prev_scop == nullptr;
   }
-  shared_ptr<SymbolTable> prev_scop;
+  shared_ptr<Environment> prev_scop;
 };
 
 class ASTNode {
@@ -68,8 +68,7 @@ class FunctionNode;
 
 struct BlockNode:ASTNode {
   shared_ptr<BlockNode> parent;  // if nullptr, it is global block
-  shared_ptr<SymbolTable> symtable;
-  shared_ptr<FunctionNode> function;
+  shared_ptr<Environment> symtable;
   auto virtual genIR(ofstream os) -> void{;}
 };
 

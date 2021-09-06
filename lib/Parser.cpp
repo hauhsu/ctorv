@@ -1,5 +1,20 @@
 #include "Parser.hpp"
 
+shared_ptr<IR> IR_nop() {
+  return mkIR(OP_NOP, "0", "0", "0");
+}
+
+auto unaryOp(Addr dst, Addr addr) -> void {
+}
+
+auto binaryOp(Addr dst, Addr l, Addr r) -> void {
+
+}
+
+Parser::Parser(): tmpCnt(0) {
+  opRules.insert({PLUS,  {PREC_TERM, unaryOp, binaryOp}});
+  opRules.insert({MINUS, {PREC_TERM, unaryOp, binaryOp}});
+}
 
 auto Parser::parse(ifstream& input) -> shared_ptr<CompileUnit> {
   lexer.setInput(input);
@@ -17,9 +32,7 @@ auto Parser::parse() -> shared_ptr<CompileUnit> {
   while(1) {
     lookahead = lexer.getNextToken();
     if (!lookahead) break;
-    if (_DEBUG) {
-      cout << lookahead->to_string() << endl;
-    }
+    cout << lookahead->repr() << endl;
     if (lookahead->tag == Tag::TYPE) {
       parseDecl(nullptr);
     }
@@ -39,25 +52,41 @@ void printVector(vector<T>& v) {
   }
 }
 
-auto Parser::parseDecl(shared_ptr<BlockNode> scope) -> void {
+auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
   /*
    * grammer:
    *     declaration -> TYPE ID '(' parameters ')';  //function definition
    *                 |  TYPE ID '(' parameters ')' block  //function declaration
-   *                 |  TYPE ID; // variable
+   *                 |  TYPE ID;  //variable
    */
   auto type = dynamic_pointer_cast<Word>(match(Tag::TYPE));
   auto id = dynamic_pointer_cast<Id>(match(Tag::IDENTIFIER));
   if (lookahead->tag == Tag::SEMICOLON) {
     cout << "Parsed variable declaration: " << endl;
-    cout << "type: " << type->lexeme << endl;
-    cout << "name: " << id->lexeme << endl;
-    if (scope == nullptr) {
+    cout << "  type: " << type->lexeme << endl;
+    cout << "  name: " << id->lexeme << endl;
+    if (curBlk == nullptr) {
       // global
       cu->symbolTables[0]->add(Variable(type->lexeme, id->lexeme));
     } else {
-      scope->symtable->add(Variable(type->lexeme, id->lexeme));
+      curBlk->symtable->add(Variable(type->lexeme, id->lexeme));
     }
+    match(Tag::SEMICOLON);
+    return;
+  }
+
+  if (lookahead->tag == Tag::ASSIGN) {
+    match(Tag::ASSIGN);
+    TokenPtr initVal;
+
+    if (type->lexeme == "int") {
+      initVal = match(Tag::NUMBER);
+    }
+    cout << "Parsed variable declaration: " << endl;
+    cout << "  type: " << type->lexeme << endl;
+    cout << "  name: " << id->lexeme << endl;
+    cout << "  init: " << initVal->repr() << endl;
+    match(Tag::SEMICOLON);
     return;
   }
 
@@ -73,19 +102,21 @@ auto Parser::parseDecl(shared_ptr<BlockNode> scope) -> void {
 
     if (lookahead->tag == Tag::SEMICOLON) {
       cout << "Parsed function declaration: " << endl;
-      cout << "Name: " << f->name << endl;
-      cout << "Parameters: " << endl;
+      cout << "  name: " << f->name << endl;
+      cout << "  parameters: " << endl;
       printVector(f->params);
       return;
     }
     if (lookahead->tag == Tag::LEFT_BRACE) {
-      f->body = parseBlock(scope);
+      f->body = parseBlock(curBlk);
       cout << "Parsed function definition: " << endl;
-      cout << "Name: " << f->name << endl;
-      cout << "Parameters: " << endl;
+      cout << "  name: " << f->name << endl;
+      cout << "  parameters: " << endl;
       printVector(f->params);
+      return;
     }
-    cout << "Syntax error.";
+    cout << "Syntax error." << endl;
+    exit(1);
   }
 }
 
@@ -113,20 +144,43 @@ auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> shared_ptr<Bloc
   auto blk = make_shared<BlockNode>();
   blk->parent = parent;
 
-  if (lookahead->tag == Tag::IF) {
-    /* auto ifblk = make_shared<IFNode>(); */
-    /* if (lookahead->tag == Tag::ELSE) { */
-    /* } */
-
-  }
-
-
+  parseExpr();
   return blk;
 }
 
-auto parseStatm() -> void {
+
+auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
+  while (true) {
+    auto rule = opRules.find(lookahead->tag);
+    if (rule == opRules.end()) {
+      cerr << "Invalid operator: " << lookahead << endl;
+    }
+    if (precedence > rule->second.precedence) {
+      return lhs;
+    }
+
+    auto tmp = mkTemp();
+    rule->second.infixFunc(tmp, rhs, lhs);
+    auto rhs = parseRHS(lookahead->str(), rule->second.precedence+1);
+}
+}
+
+/*
+ *
+ */
+auto Parser::parseExpr() -> shared_ptr<ASTNode> {
+  if (lookahead->tag == NUMBER) {
+    auto lhs = dynamic_pointer_cast<Num>(match(lookahead->tag));
+    parseRHS(repr(lhs->val), PREC_ASSIGNMENT);
+  }
+  else if (lookahead->tag == IDENTIFIER) {
+    auto lhs = dynamic_pointer_cast<Id>(match(lookahead->tag));
+    parseRHS(lhs->lexeme, PREC_ASSIGNMENT);
+  }
+
 
 }
+
 
 /*
  * Auxilary methods
@@ -140,7 +194,7 @@ auto Parser::match(Tag t) -> TokenPtr {
     return prevLookahead;
   }
 
-  cout << "Syntax error";
+  cout << "Syntax error: expecting " << t << endl;
   exit(1);
 }
 

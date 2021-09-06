@@ -7,13 +7,13 @@ class Machine
 {
 public:
   Machine(){;}
-  auto virtual emitMachineCode(SymbolTable& symbols, ostream &os) -> void = 0;
+  auto virtual emitMachineCode(Environment& symbols, ostream &os) -> void = 0;
 };
 
 class RISCV: Machine
 {
 public:
-  auto virtual emitMachineCode(SymbolTable& symbols, ostream &os) -> void;
+  auto virtual emitMachineCode(Environment& symbols, ostream &os) -> void;
 
 };
 

@@ -1,6 +1,6 @@
 #include "RISCV.hpp"
 
-auto RISCV::emitMachineCode(SymbolTable& symTable, ostream &os) -> void {
+auto RISCV::emitMachineCode(Environment& symTable, ostream &os) -> void {
   cout << "Emit machine code" << endl;
   if (symTable.isGlobal()) {
     for (auto& s: symTable.symbols) {

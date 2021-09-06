@@ -10,28 +10,47 @@ using namespace std;
 // Token
 
 ostream &operator<< (ostream &os, const Token& token) {
-  os << token.to_string();
+  os << token.repr();
   return os;
 }
 
-string Token::to_string() const {
-  return "Tag:" + ::to_string(tag);
+string Token::repr() const {
+  return "Tag:" + to_string(tag);
+}
+string Token::str() const {
+  return  to_string(tag);
 }
 
-string Num::to_string() const {
-  return "Number: " + ::to_string(val) + " Tag: " + ::to_string(tag);
+string Num::repr() const {
+  return "Number: " + to_string(val) + " Tag: " + to_string(tag);
 }
 
-string Id::to_string() const {
-  return "Identifier: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
+string Num::str() const {
+  return to_string(val);
 }
 
-string Word::to_string() const {
-  return "Keyword: '" + lexeme + "'" + " Tag:" + ::to_string(tag);
+string Id::repr() const {
+  return "Identifier: '" + lexeme + "'" + " Tag:" + to_string(tag);
 }
 
-string Punctuator::to_string() const {
-  return "Punctuator: '" + punc + "'" + " Tag:" + ::to_string(tag);
+string Id::str() const {
+  return lexeme;
+}
+
+string Word::repr() const {
+  return "Keyword: '" + lexeme + "'" + " Tag:" + to_string(tag);
+}
+
+string Word::str() const {
+  return lexeme;
+}
+
+string Punctuator::repr() const {
+  return "Punctuator: '" + punc + "'" + " Tag:" + to_string(tag);
+}
+
+string Punctuator::str() const {
+  return punc;
 }
 
 // Lexer

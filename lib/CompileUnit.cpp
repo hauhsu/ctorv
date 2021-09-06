@@ -1,11 +1,10 @@
 #include "CompileUnit.hpp"
 
 CompileUnit::CompileUnit() {
-    symbolTables.push_back(make_shared<SymbolTable>());
+  // global symbol table
+  symbolTables.push_back(make_shared<Environment>());
 }
 
-auto CompileUnit::mkIR(OP op, int addr0, int addr1, int addr2) -> shared_ptr<IR> {
-  auto ir = make_shared<IR>(op, addr0, addr1, addr2);
+auto CompileUnit::insertIR(shared_ptr<IR> ir) -> void {
   IRList.push_back(ir);
-  return ir;
 }

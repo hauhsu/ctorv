@@ -1,4 +1,3 @@
-int test;
 int fibo(int n)
 {
   if (n == 0)
