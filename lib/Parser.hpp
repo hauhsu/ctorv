@@ -41,7 +41,7 @@ private:
   auto parseUnary() -> shared_ptr<ASTNode>;  // -
   auto parseFactor() -> shared_ptr<ASTNode>; // ID, true, false, NUMBER
   auto mkTemp() -> string {
-    return "t" + repr(tmpCnt++);
+    return "t" + to_string(tmpCnt++);
   }
 
 
@@ -68,8 +68,8 @@ private:
     PREC_CALL,        // . ()
     PREC_PRIMARY
   };
-  typedef function<void(Addr, Addr)> PrefixFunc;
-  typedef function<void(Addr, Addr, Addr)> InfixFunc;
+  typedef function<void(Tag, Addr, Addr)> PrefixFunc;
+  typedef function<void(Tag, Addr, Addr, Addr)> InfixFunc;
   struct OpRule {
     Precedence precedence;
     PrefixFunc prefixFunc;

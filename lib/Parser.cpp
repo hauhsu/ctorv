@@ -4,11 +4,24 @@ shared_ptr<IR> IR_nop() {
   return mkIR(OP_NOP, "0", "0", "0");
 }
 
-auto unaryOp(Addr dst, Addr addr) -> void {
+auto unaryOp(Tag tag, Addr dst, Addr addr) -> void {
+  switch (tag) {
+    case PLUS:
+      cout << dst << " = " << "+" << addr << endl;
+      break;
+    default:
+      cerr  << "Invalid Op"<< endl;
+  }
 }
 
-auto binaryOp(Addr dst, Addr l, Addr r) -> void {
-
+auto binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> void {
+  switch (tag) {
+    case PLUS:
+      cout << dst << " = " << l << " + " << r << endl;
+      break;
+    default:
+      cerr  << "Invalid Op"<< endl;
+  }
 }
 
 Parser::Parser(): tmpCnt(0) {
@@ -101,6 +114,7 @@ auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
     addFunc(f);
 
     if (lookahead->tag == Tag::SEMICOLON) {
+      match(Tag::SEMICOLON);
       cout << "Parsed function declaration: " << endl;
       cout << "  name: " << f->name << endl;
       cout << "  parameters: " << endl;
@@ -108,6 +122,7 @@ auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
       return;
     }
     if (lookahead->tag == Tag::LEFT_BRACE) {
+      match(Tag::LEFT_BRACE);
       f->body = parseBlock(curBlk);
       cout << "Parsed function definition: " << endl;
       cout << "  name: " << f->name << endl;
@@ -151,34 +166,38 @@ auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> shared_ptr<Bloc
 
 auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
   while (true) {
-    auto rule = opRules.find(lookahead->tag);
-    if (rule == opRules.end()) {
-      cerr << "Invalid operator: " << lookahead << endl;
+    if (lookahead->tag == Tag::SEMICOLON) return lhs;
+    auto op = match(lookahead->tag); // swallow op
+    auto rule = opRules.find(op->tag);
+    if ( rule == opRules.end()) {
+      cerr << "Invalid operator: " << op->repr() << endl;
     }
+
     if (precedence > rule->second.precedence) {
       return lhs;
     }
 
+    auto rhs = match(Tag::NUMBER);  // should be parsePrimary
     auto tmp = mkTemp();
-    rule->second.infixFunc(tmp, rhs, lhs);
-    auto rhs = parseRHS(lookahead->str(), rule->second.precedence+1);
-}
+    rule->second.infixFunc(op->tag, tmp, rhs->str(), lhs);
+    lhs = tmp;
+  }
 }
 
 /*
  *
  */
 auto Parser::parseExpr() -> shared_ptr<ASTNode> {
-  if (lookahead->tag == NUMBER) {
-    auto lhs = dynamic_pointer_cast<Num>(match(lookahead->tag));
-    parseRHS(repr(lhs->val), PREC_ASSIGNMENT);
+  if (lookahead->tag == Tag::NUMBER) {
+    shared_ptr<Num> lhs = dynamic_pointer_cast<Num>(match(lookahead->tag));
+    parseRHS(to_string(lhs->val), PREC_ASSIGNMENT);
   }
-  else if (lookahead->tag == IDENTIFIER) {
-    auto lhs = dynamic_pointer_cast<Id>(match(lookahead->tag));
+  else if (lookahead->tag == Tag::IDENTIFIER) {
+    shared_ptr<Id> lhs = dynamic_pointer_cast<Id>(match(lookahead->tag));
     parseRHS(lhs->lexeme, PREC_ASSIGNMENT);
   }
 
-
+  return nullptr;
 }
 
 
