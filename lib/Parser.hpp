@@ -27,8 +27,8 @@ private:
   auto parseDecl(shared_ptr<BlockNode> scope) -> void;  // add to **functions** or **symTables**
   auto parseParams() -> Params;
   auto parseBlock(shared_ptr<BlockNode> parent) -> shared_ptr<BlockNode>;
-  auto parseStatm() -> shared_ptr<ASTNode>;
-  auto parseIfStatm() -> shared_ptr<ASTNode>;
+  auto parseStatm() -> void;
+  auto parseIfStatm() -> void;
   auto parseAssign() -> shared_ptr<ASTNode>; // =
   auto parseLogicOr() -> shared_ptr<ASTNode>;   // ||
   auto parseLogicAnd() -> shared_ptr<ASTNode>;   // &&
@@ -45,8 +45,6 @@ private:
   }
 
 
-  auto match(Tag t) -> TokenPtr;
-  auto addFunc(shared_ptr<FunctionNode>) -> void;
 
 private:
   Lexer lexer;
@@ -57,10 +55,11 @@ private:
 
   // for Pratt expression parser
   enum Precedence {
+    PREC_NONE,        
     PREC_ASSIGNMENT,  // =
     PREC_OR,          // or
     PREC_AND,         // and
-    PREC_EQUALITY,    // == !=
+    PREC_EQ,          // == !=
     PREC_COMPARISON,  // < > <= >=
     PREC_TERM,        // + -
     PREC_FACTOR,      // * /
@@ -77,5 +76,10 @@ private:
   };
   unordered_map<int, OpRule> opRules;
   int tmpCnt;
+
+ /* Auxilary methods */
+  auto match(Tag t) -> TokenPtr;
+  auto addFunc(shared_ptr<FunctionNode>) -> void;
+  auto getOpRule(shared_ptr<Token> op) -> OpRule;
 };
 #endif /* end of include guard: PARSER_CPP_UDVXJZBP */

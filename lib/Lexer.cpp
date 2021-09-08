@@ -161,6 +161,7 @@ auto Lexer::init_punctuators() -> void {
   add_punctuator(Tag::SEMICOLON, ";");
   add_punctuator(Tag::PLUS, "+");
   add_punctuator(Tag::MINUS, "-");
+  add_punctuator(Tag::ASTERISK, "*");
   add_punctuator(Tag::COMMA, ",");
 }
 

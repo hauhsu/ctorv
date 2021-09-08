@@ -30,6 +30,7 @@ enum Tag {
     SEMICOLON     , // ;
     MINUS         , // -
     PLUS          , // +
+    ASTERISK      , // *
     COMMA         , // ,
 };
 

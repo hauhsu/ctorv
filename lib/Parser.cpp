@@ -19,14 +19,33 @@ auto binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> void {
     case PLUS:
       cout << dst << " = " << l << " + " << r << endl;
       break;
+    case ASTERISK:
+      cout << dst << " = " << l << " * " << r << endl;
+      break;
     default:
       cerr  << "Invalid Op"<< endl;
   }
 }
 
+static auto emptyPrefixOp(Tag, Addr, Addr) -> void {
+  cerr << "Shouldn't be called." << endl;
+  exit(1);
+}
+
+static auto emptyInfixOp(Tag, Addr, Addr, Addr) -> void {
+  cerr << "Shouldn't be called." << endl;
+  exit(1);
+}
+
 Parser::Parser(): tmpCnt(0) {
-  opRules.insert({PLUS,  {PREC_TERM, unaryOp, binaryOp}});
-  opRules.insert({MINUS, {PREC_TERM, unaryOp, binaryOp}});
+  //              token         precedence    prefix op      infix op
+  opRules.insert({SEMICOLON,   {PREC_NONE,    emptyPrefixOp, emptyInfixOp}});
+  opRules.insert({LEFT_PAREN,  {PREC_CALL,    unaryOp,       emptyInfixOp}});
+  opRules.insert({RIGHT_PAREN, {PREC_NONE,    emptyPrefixOp, emptyInfixOp}});
+  opRules.insert({ASTERISK,    {PREC_FACTOR,  emptyPrefixOp, binaryOp}});
+  opRules.insert({PLUS,        {PREC_TERM,    unaryOp,       binaryOp}});
+  opRules.insert({MINUS,       {PREC_TERM,    unaryOp,       binaryOp}});
+  opRules.insert({EQ,          {PREC_EQ,      emptyPrefixOp, binaryOp}});
 }
 
 auto Parser::parse(ifstream& input) -> shared_ptr<CompileUnit> {
@@ -128,6 +147,7 @@ auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
       cout << "  name: " << f->name << endl;
       cout << "  parameters: " << endl;
       printVector(f->params);
+      match(Tag::RIGHT_BRACE);
       return;
     }
     cout << "Syntax error." << endl;
@@ -159,27 +179,37 @@ auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> shared_ptr<Bloc
   auto blk = make_shared<BlockNode>();
   blk->parent = parent;
 
-  parseExpr();
+ // parseExpr();
+  parseStatm();
   return blk;
 }
 
+auto Parser::parseStatm() -> void {
+  if (lookahead->tag == Tag::IF) {
+    match(Tag::IF); match(Tag::LEFT_PAREN);
+    parseExpr(); match(Tag::RIGHT_PAREN);
+  }
+}
+
+auto Parser::parseIfStatm() -> void {
+}
 
 auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
+  //Handle Infix
   while (true) {
-    if (lookahead->tag == Tag::SEMICOLON) return lhs;
-    auto op = match(lookahead->tag); // swallow op
-    auto rule = opRules.find(op->tag);
-    if ( rule == opRules.end()) {
-      cerr << "Invalid operator: " << op->repr() << endl;
-    }
-
-    if (precedence > rule->second.precedence) {
+    auto op = lookahead;
+    cout << op->repr() << endl;
+    auto rule = getOpRule(op);
+    Addr rhs;
+    if (precedence >= rule.precedence) {
       return lhs;
+    } else {
+      match(lookahead->tag); // swallow op
+      rhs = parseRHS(match(lookahead->tag)->str(), rule.precedence+1);
     }
 
-    auto rhs = match(Tag::NUMBER);  // should be parsePrimary
     auto tmp = mkTemp();
-    rule->second.infixFunc(op->tag, tmp, rhs->str(), lhs);
+    rule.infixFunc(op->tag, tmp, lhs, rhs);
     lhs = tmp;
   }
 }
@@ -188,13 +218,14 @@ auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
  *
  */
 auto Parser::parseExpr() -> shared_ptr<ASTNode> {
-  if (lookahead->tag == Tag::NUMBER) {
-    shared_ptr<Num> lhs = dynamic_pointer_cast<Num>(match(lookahead->tag));
-    parseRHS(to_string(lhs->val), PREC_ASSIGNMENT);
-  }
-  else if (lookahead->tag == Tag::IDENTIFIER) {
-    shared_ptr<Id> lhs = dynamic_pointer_cast<Id>(match(lookahead->tag));
-    parseRHS(lhs->lexeme, PREC_ASSIGNMENT);
+  switch (lookahead->tag) {
+    case Tag::NUMBER:
+    case Tag::IDENTIFIER:
+      parseRHS(match(lookahead->tag)->str(), PREC_ASSIGNMENT);
+      break;
+    default:
+      cerr << "Unexpected token " << lookahead->repr() << " for expression" << endl;
+      exit(1);
   }
 
   return nullptr;
@@ -222,3 +253,13 @@ auto Parser::addFunc(shared_ptr<FunctionNode> f) -> void {
   assert(cu);
   cu->functions.insert({f->name, f});
 }
+
+auto Parser::getOpRule(shared_ptr<Token> op) -> OpRule {
+    auto rule = opRules.find(op->tag);
+    if ( rule == opRules.end()) {
+      cerr << "Invalid operator: " << op->repr() << endl;
+      exit(1);
+    }
+    return rule->second;
+}
+
