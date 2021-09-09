@@ -45,6 +45,7 @@ Parser::Parser() {
   opRules.insert({PLUS,        {PREC_TERM,    &Parser::unaryOp,       &Parser::binaryOp}});
   opRules.insert({MINUS,       {PREC_TERM,    &Parser::unaryOp,       &Parser::binaryOp}});
   opRules.insert({EQ,          {PREC_EQ,      &Parser::emptyPrefixOp, &Parser::binaryOp}});
+  curBlock = nullptr;
 }
 
 auto Parser::parse(ifstream& input) -> shared_ptr<CompileUnit> {
@@ -65,7 +66,7 @@ auto Parser::parse() -> shared_ptr<CompileUnit> {
     if (!lookahead) break;
     cout << lookahead->repr() << endl;
     if (lookahead->tag == Tag::TYPE) {
-      parseDecl(nullptr);
+      parseDecl();
     }
   }
   cu->dumpIRs();
@@ -84,7 +85,7 @@ void printVector(vector<T>& v) {
   }
 }
 
-auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
+auto Parser::parseDecl() -> void {
   /*
    * grammer:
    *     declaration -> TYPE ID '(' parameters ')';  //function definition
@@ -97,11 +98,11 @@ auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
     cout << "Parsed variable declaration: " << endl;
     cout << "  type: " << type->lexeme << endl;
     cout << "  name: " << id->lexeme << endl;
-    if (curBlk == nullptr) {
+    if (curBlock == nullptr) {
       // global
       cu->symbolTables[0]->add(Variable(type->lexeme, id->lexeme));
     } else {
-      curBlk->symtable->add(Variable(type->lexeme, id->lexeme));
+      curBlock->symtable->add(Variable(type->lexeme, id->lexeme));
     }
     match(Tag::SEMICOLON);
     return;
@@ -130,7 +131,7 @@ auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
     auto f = make_shared<FunctionNode>();
     f->name = dynamic_pointer_cast<Id>(id)->lexeme;
     f->params = params;
-    addFunc(f);
+    cu->addFunc(f);
 
     if (lookahead->tag == Tag::SEMICOLON) {
       match(Tag::SEMICOLON);
@@ -141,12 +142,14 @@ auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
       return;
     }
     if (lookahead->tag == Tag::LEFT_BRACE) {
-      match(Tag::LEFT_BRACE);
       cout << "Parsed function definition: " << endl;
       cout << "  name: " << f->name << endl;
       cout << "  parameters: " << endl;
       printVector(f->params);
-      f->body = parseBlock(curBlk);
+
+      auto funcLabel = cu->newLabel(f->name);
+      match(Tag::LEFT_BRACE);
+      f->body = parseBlock();
       match(Tag::RIGHT_BRACE);
       return;
     }
@@ -175,24 +178,27 @@ auto Parser::parseParams() -> Params {
   return params;
 }
 
-auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> shared_ptr<BlockNode> {
+auto Parser::parseBlock() -> shared_ptr<BlockNode> {
   auto blk = make_shared<BlockNode>();
-  blk->parent = parent;
+  blk->parent = curBlock;
+  curBlock = blk;
 
   while (lookahead->tag != Tag::RIGHT_BRACE) {
     parseStatm();
   }
+  curBlock = blk->parent;
   return blk;
 }
 
 auto Parser::parseStatm() -> void {
   if (lookahead->tag == Tag::IF) {
-    cout << "Parsing if" << endl;
     parseIf();
+  }
+  if (lookahead->tag == Tag::TYPE) {
+    parseDecl();
   }
 
   else {
-    cout << "Parsing expr" << endl;
     parseExprStatm();
   }
 }
@@ -203,10 +209,12 @@ auto Parser::parseIf() -> void {
     auto result = parseExpr();
     match(Tag::RIGHT_PAREN); // )
     match(Tag::LEFT_BRACE);  // {
-    auto ifBranchIR = cu->emitIR(OP_BEQ, result, "0", "patchme"); //jump over if expression evaluates 0 (false)
+    //jump over "if block" if condition evaluates 0 (false)
+    auto ifBranchIR = cu->emitIR(OP_BEQ, result, "0", "patchme"); 
     parseStatm();
     match(Tag::RIGHT_BRACE);  // }
     auto afterIfLabel = cu->newLabel();
+    //until new we know where is the end of "if", backpatching.
     patchJump(ifBranchIR, afterIfLabel);
 }
 
@@ -257,23 +265,21 @@ auto Parser::parseExprStatm() -> Addr {
  *
  */
 
-auto Parser::match(Tag t) -> TokenPtr {
+auto Parser::match(Tag t, string msg) -> TokenPtr {
   if (lookahead->tag == t) {
     auto prevLookahead = lookahead;
     lookahead = lexer.getNextToken();
     return prevLookahead;
   }
+  if (msg == "")
+    msg = "Syntax error: expecting '" + tagstr(t) +
+          "', got '" + tagstr(lookahead->tag) + "'" + " (line " +
+          to_string(lookahead->line) + ")";
 
-  cout << "Syntax error: expecting '" + tagstr(t) + "', got '" + tagstr(lookahead->tag) + "'" +
-    " (line " + to_string(lookahead->line) + ")" << endl;
+  cout << msg << endl;
   exit(1);
 }
 
-
-auto Parser::addFunc(shared_ptr<FunctionNode> f) -> void {
-  assert(cu);
-  cu->functions.insert({f->name, f});
-}
 
 auto Parser::getOpRule(shared_ptr<Token> op) -> OpRule {
     auto rule = opRules.find(op->tag);

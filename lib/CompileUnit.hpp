@@ -22,7 +22,12 @@ public:
     labelList.insert({IRList.size(), l});
     return l;
   }
+  auto newLabel(const string &name) -> Addr {
+    labelList.insert({IRList.size(), name});
+    return name;
+  }
 
+  auto addFunc(shared_ptr<FunctionNode>) -> void;
   vector<shared_ptr<Environment>> symbolTables;
   unordered_map<string, shared_ptr<FunctionNode>> functions;
   vector<shared_ptr<IR>> IRList;

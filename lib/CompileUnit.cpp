@@ -8,3 +8,8 @@ CompileUnit::CompileUnit(): tmpCnt(0), labelCnt(0) {
 auto CompileUnit::insertIR(shared_ptr<IR> ir) -> void {
   IRList.push_back(ir);
 }
+
+auto CompileUnit::addFunc(shared_ptr<FunctionNode> f) -> void {
+  functions.insert({f->name, f});
+}
+
