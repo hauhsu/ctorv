@@ -1,10 +1,16 @@
 #include "Parser.hpp"
 
-shared_ptr<IR> IR_nop() {
-  return mkIR(OP_NOP, "0", "0", "0");
+auto emptyPrefixOp(Tag, Addr, Addr) -> void {
+  cerr << "Shouldn't be called." << endl;
+  exit(1);
 }
 
-auto unaryOp(Tag tag, Addr dst, Addr addr) -> void {
+auto emptyInfixOp(Tag, Addr, Addr, Addr) -> void {
+  cerr << "Shouldn't be called." << endl;
+  exit(1);
+}
+
+auto Parser::unaryOp(Tag tag, Addr dst, Addr addr) -> void {
   switch (tag) {
     case PLUS:
       cout << dst << " = " << "+" << addr << endl;
@@ -14,38 +20,31 @@ auto unaryOp(Tag tag, Addr dst, Addr addr) -> void {
   }
 }
 
-auto binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> void {
+auto Parser::binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> void {
   switch (tag) {
     case PLUS:
       cout << dst << " = " << l << " + " << r << endl;
+      cu->emitIR(OP_ADD, dst, l, r);
       break;
     case ASTERISK:
       cout << dst << " = " << l << " * " << r << endl;
+      cu->emitIR(OP_MUL, dst, l, r);
       break;
     default:
       cerr  << "Invalid Op"<< endl;
   }
 }
 
-static auto emptyPrefixOp(Tag, Addr, Addr) -> void {
-  cerr << "Shouldn't be called." << endl;
-  exit(1);
-}
 
-static auto emptyInfixOp(Tag, Addr, Addr, Addr) -> void {
-  cerr << "Shouldn't be called." << endl;
-  exit(1);
-}
-
-Parser::Parser(): tmpCnt(0) {
+Parser::Parser() {
   //              token         precedence    prefix op      infix op
-  opRules.insert({SEMICOLON,   {PREC_NONE,    emptyPrefixOp, emptyInfixOp}});
-  opRules.insert({LEFT_PAREN,  {PREC_CALL,    unaryOp,       emptyInfixOp}});
-  opRules.insert({RIGHT_PAREN, {PREC_NONE,    emptyPrefixOp, emptyInfixOp}});
-  opRules.insert({ASTERISK,    {PREC_FACTOR,  emptyPrefixOp, binaryOp}});
-  opRules.insert({PLUS,        {PREC_TERM,    unaryOp,       binaryOp}});
-  opRules.insert({MINUS,       {PREC_TERM,    unaryOp,       binaryOp}});
-  opRules.insert({EQ,          {PREC_EQ,      emptyPrefixOp, binaryOp}});
+  opRules.insert({SEMICOLON,   {PREC_NONE,    &Parser::emptyPrefixOp, &Parser::emptyInfixOp}});
+  opRules.insert({LEFT_PAREN,  {PREC_CALL,    &Parser::unaryOp,       &Parser::emptyInfixOp}});
+  opRules.insert({RIGHT_PAREN, {PREC_NONE,    &Parser::emptyPrefixOp, &Parser::emptyInfixOp}});
+  opRules.insert({ASTERISK,    {PREC_FACTOR,  &Parser::emptyPrefixOp, &Parser::binaryOp}});
+  opRules.insert({PLUS,        {PREC_TERM,    &Parser::unaryOp,       &Parser::binaryOp}});
+  opRules.insert({MINUS,       {PREC_TERM,    &Parser::unaryOp,       &Parser::binaryOp}});
+  opRules.insert({EQ,          {PREC_EQ,      &Parser::emptyPrefixOp, &Parser::binaryOp}});
 }
 
 auto Parser::parse(ifstream& input) -> shared_ptr<CompileUnit> {
@@ -69,6 +68,7 @@ auto Parser::parse() -> shared_ptr<CompileUnit> {
       parseDecl(nullptr);
     }
   }
+  cu->dumpIRs();
   return cu;
 }
 
@@ -142,11 +142,11 @@ auto Parser::parseDecl(shared_ptr<BlockNode> curBlk) -> void {
     }
     if (lookahead->tag == Tag::LEFT_BRACE) {
       match(Tag::LEFT_BRACE);
-      f->body = parseBlock(curBlk);
       cout << "Parsed function definition: " << endl;
       cout << "  name: " << f->name << endl;
       cout << "  parameters: " << endl;
       printVector(f->params);
+      f->body = parseBlock(curBlk);
       match(Tag::RIGHT_BRACE);
       return;
     }
@@ -179,19 +179,35 @@ auto Parser::parseBlock(shared_ptr<BlockNode> parent=nullptr) -> shared_ptr<Bloc
   auto blk = make_shared<BlockNode>();
   blk->parent = parent;
 
- // parseExpr();
-  parseStatm();
+  while (lookahead->tag != Tag::RIGHT_BRACE) {
+    parseStatm();
+  }
   return blk;
 }
 
 auto Parser::parseStatm() -> void {
   if (lookahead->tag == Tag::IF) {
-    match(Tag::IF); match(Tag::LEFT_PAREN);
-    parseExpr(); match(Tag::RIGHT_PAREN);
+    cout << "Parsing if" << endl;
+    parseIf();
+  }
+
+  else {
+    cout << "Parsing expr" << endl;
+    parseExprStatm();
   }
 }
 
-auto Parser::parseIfStatm() -> void {
+auto Parser::parseIf() -> void {
+    match(Tag::IF);
+    match(Tag::LEFT_PAREN);  // (
+    auto result = parseExpr();
+    match(Tag::RIGHT_PAREN); // )
+    match(Tag::LEFT_BRACE);  // {
+    auto ifBranchIR = cu->emitIR(OP_BEQ, result, "0", "patchme"); //jump over if expression evaluates 0 (false)
+    parseStatm();
+    match(Tag::RIGHT_BRACE);  // }
+    auto afterIfLabel = cu->newLabel();
+    patchJump(ifBranchIR, afterIfLabel);
 }
 
 auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
@@ -208,8 +224,8 @@ auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
       rhs = parseRHS(match(lookahead->tag)->str(), rule.precedence+1);
     }
 
-    auto tmp = mkTemp();
-    rule.infixFunc(op->tag, tmp, lhs, rhs);
+    auto tmp = cu->newTemp();
+    rule.infixFunc(*this, op->tag, tmp, lhs, rhs);
     lhs = tmp;
   }
 }
@@ -217,18 +233,22 @@ auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
 /*
  *
  */
-auto Parser::parseExpr() -> shared_ptr<ASTNode> {
+auto Parser::parseExpr() -> Addr {
   switch (lookahead->tag) {
     case Tag::NUMBER:
     case Tag::IDENTIFIER:
-      parseRHS(match(lookahead->tag)->str(), PREC_ASSIGNMENT);
-      break;
+      return parseRHS(match(lookahead->tag)->str(), PREC_ASSIGNMENT);
+
     default:
       cerr << "Unexpected token " << lookahead->repr() << " for expression" << endl;
       exit(1);
   }
+}
 
-  return nullptr;
+auto Parser::parseExprStatm() -> Addr {
+  Addr result = parseExpr();
+  match(Tag::SEMICOLON);
+  return result;
 }
 
 
@@ -244,7 +264,7 @@ auto Parser::match(Tag t) -> TokenPtr {
     return prevLookahead;
   }
 
-  cout << "Syntax error: expecting " << t << endl;
+  cout << "Syntax error: expecting " << t << ", got " << lookahead->tag << endl;
   exit(1);
 }
 

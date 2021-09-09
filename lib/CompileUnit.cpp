@@ -1,6 +1,6 @@
 #include "CompileUnit.hpp"
 
-CompileUnit::CompileUnit() {
+CompileUnit::CompileUnit(): tmpCnt(0), labelCnt(0) {
   // global symbol table
   symbolTables.push_back(make_shared<Environment>());
 }

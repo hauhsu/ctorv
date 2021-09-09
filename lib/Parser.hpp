@@ -28,20 +28,34 @@ private:
   auto parseParams() -> Params;
   auto parseBlock(shared_ptr<BlockNode> parent) -> shared_ptr<BlockNode>;
   auto parseStatm() -> void;
-  auto parseIfStatm() -> void;
+  auto parseIf() -> void;
   auto parseAssign() -> shared_ptr<ASTNode>; // =
   auto parseLogicOr() -> shared_ptr<ASTNode>;   // ||
   auto parseLogicAnd() -> shared_ptr<ASTNode>;   // &&
   auto parseEq() -> shared_ptr<ASTNode>;     // ==, !=
   auto parseRel() -> shared_ptr<ASTNode>;    // >, <, <=, >=
-  auto parseExpr() -> shared_ptr<ASTNode>;   // +, -
+  auto parseExpr() -> Addr;   // +, -
+  auto parseExprStatm() -> Addr;
   auto parseRHS(Addr lhs, int precedence) -> Addr;
 
   auto parseTerm() -> shared_ptr<ASTNode>;   // *, /
   auto parseUnary() -> shared_ptr<ASTNode>;  // -
   auto parseFactor() -> shared_ptr<ASTNode>; // ID, true, false, NUMBER
-  auto mkTemp() -> string {
-    return "t" + to_string(tmpCnt++);
+  auto patchJump(unsigned jumpIR, Addr addr) -> void {
+    cu->IRList[jumpIR]->addr2 = addr;
+  }
+
+
+  auto unaryOp(Tag tag, Addr dst, Addr addr) -> void;
+  auto binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> void;
+  auto emptyPrefixOp(Tag, Addr, Addr) -> void {
+    cerr << "Shouldn't be called." << endl;
+    exit(1);
+  }
+
+  auto emptyInfixOp(Tag, Addr, Addr, Addr) -> void {
+    cerr << "Shouldn't be called." << endl;
+    exit(1);
   }
 
 
@@ -67,15 +81,14 @@ private:
     PREC_CALL,        // . ()
     PREC_PRIMARY
   };
-  typedef function<void(Tag, Addr, Addr)> PrefixFunc;
-  typedef function<void(Tag, Addr, Addr, Addr)> InfixFunc;
+  typedef function<void(Parser&, Tag, Addr, Addr)> PrefixFunc;
+  typedef function<void(Parser&, Tag, Addr, Addr, Addr)> InfixFunc;
   struct OpRule {
     Precedence precedence;
     PrefixFunc prefixFunc;
     InfixFunc infixFunc;
   };
   unordered_map<int, OpRule> opRules;
-  int tmpCnt;
 
  /* Auxilary methods */
   auto match(Tag t) -> TokenPtr;

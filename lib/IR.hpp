@@ -6,19 +6,23 @@ using namespace std;
 /* IR opcode */
 enum OP{
   OP_NOP,
-  OP_JUMP,
-  OP_JUMP_IF,
-  OP_JUMP_IF_NOT,
-  OP_CALL,
-  OP_RETUREN,
 
+  // branches
+  OP_BEQ,     // ==
+  OP_BNE,     // !=
+  OP_BLT,     // <
+  OP_BGE,     // >=
+  OP_CALL,    // function call
+  OP_RETURN,  // retrun from function call
+
+  // memory access
   OP_LOAD,
-  OP_LOAD_IMM,
   OP_STORE,
 
+  // Arithmetic
   OP_ADD,
-  OP_SUBTRACT,
-  OP_EQ,
+  OP_SUB,
+  OP_MUL,
 };
 
 typedef string Addr;
@@ -33,9 +37,9 @@ struct IR {
       addr0(_addr0),
       addr1(_addr1),
       addr2(_addr2){;}
+  string str();
+  friend ostream &operator<< (ostream &os, const IR& ir);
 };
-
-auto mkIR(OP op, Addr addr0, Addr addr1, Addr addr2) -> shared_ptr<IR>;
 
 
 #endif /* end of include guard: IR_HPP_PDHZC90X */

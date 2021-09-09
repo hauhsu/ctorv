@@ -22,12 +22,12 @@ enum Tag {
     LEFT_PAREN    , // (
     RIGHT_PAREN   , // )
     LEFT_BRACE    , // {
-    RIGHT_BRACE   , // }
+    RIGHT_BRACE   , // } 139
     ASSIGN        , // =
     EQ            , // ==
     BITWISE_OR    , // |
     LOGIC_OR      , // ||
-    SEMICOLON     , // ;
+    SEMICOLON     , // ; 144
     MINUS         , // -
     PLUS          , // +
     ASTERISK      , // *
