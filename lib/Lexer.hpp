@@ -34,39 +34,42 @@ enum Tag {
     COMMA         , // ,
 };
 
+string tagstr(Tag);
+
 struct Token {
-  Token(Tag t): tag(t) {;}
+  Token(Tag t, unsigned line): tag(t), line(line) {;}
   virtual ~Token(){;}
   virtual string repr() const;
   virtual string str() const;
   friend ostream &operator<< (ostream &os, const Token& token);
 
   Tag tag;
+  unsigned line;
 };
 
 struct Num: Token {
-  Num(const int v): Token(Tag::NUMBER), val(v) {;}
+  Num(const int v, const unsigned line): Token(Tag::NUMBER, line), val(v) {;}
   virtual string repr() const;
   virtual string str() const;
   int val;
 };
 
 struct Id: Token {
-  Id(const string s): Token(Tag::IDENTIFIER), lexeme(s) {;}
+  Id(const string s, const unsigned line): Token(Tag::IDENTIFIER, line), lexeme(s) {;}
   virtual string repr() const;
   virtual string str() const;
   string lexeme;
 };
 
 struct Word: Token {
-  Word(const Tag t, const string s): Token(t), lexeme(s) {;}
+  Word(const Tag t, const string s): Token(t, 0), lexeme(s) {;}
   virtual string repr() const;
   virtual string str() const;
   string lexeme;
 };
 
 struct Punctuator: Token {
-  Punctuator(const Tag tag, const string s): Token(tag), punc(s) {;}
+  Punctuator(const Tag tag, const string s): Token(tag, 0), punc(s) {;}
   virtual string repr() const;
   virtual string str() const;
   string punc;

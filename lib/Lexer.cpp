@@ -8,6 +8,56 @@
 using namespace std;
 
 // Token
+string tagstr(Tag tag) {
+  switch (tag) {
+    case NUMBER:
+      return "NUMBER";
+    case IDENTIFIER:
+      return "IDENTIFIER";
+    case TRUE:
+      return "TRUE";
+    case FALSE:
+      return "FALSE";
+    case RETURN:
+      return "RETUREN";
+    case IF:
+      return "IF";
+    case ELSE:
+      return "ELSE";
+    case TYPE:
+      return "TYPE";
+    case LEFT_BRACE:
+      return "{";
+    case RIGHT_BRACE:
+      return "}";
+    case LEFT_PAREN:
+      return "(";
+    case RIGHT_PAREN:
+      return ")";
+    case ASSIGN:
+      return "=";
+    case EQ:
+      return "==";
+    case BITWISE_OR:
+      return "||";
+    case LOGIC_OR:
+      return "|";
+    case SEMICOLON:
+      return ";";
+    case MINUS:
+      return "-";
+    case PLUS:
+      return "+";
+    case ASTERISK:
+      return "*";
+    case COMMA:
+      return ",";
+    default:
+      cerr << "Unknown tag: " << tag << endl;
+      exit(1);
+  }
+}
+
 
 ostream &operator<< (ostream &os, const Token& token) {
   os << token.repr();
@@ -15,14 +65,14 @@ ostream &operator<< (ostream &os, const Token& token) {
 }
 
 string Token::repr() const {
-  return "Tag:" + to_string(tag);
+  return "Tag: " + tagstr(tag) + " Line: " + to_string(line);
 }
 string Token::str() const {
-  return  to_string(tag);
+  return  tagstr(tag);
 }
 
 string Num::repr() const {
-  return "Number: " + to_string(val) + " Tag: " + to_string(tag);
+  return "Number: " + to_string(val) + " Tag: " + tagstr(tag);
 }
 
 string Num::str() const {
@@ -30,7 +80,7 @@ string Num::str() const {
 }
 
 string Id::repr() const {
-  return "Identifier: '" + lexeme + "'" + " Tag:" + to_string(tag);
+  return "Identifier: '" + lexeme + "'" + " Tag: " + tagstr(tag);
 }
 
 string Id::str() const {
@@ -38,7 +88,7 @@ string Id::str() const {
 }
 
 string Word::repr() const {
-  return "Keyword: '" + lexeme + "'" + " Tag:" + to_string(tag);
+  return "Keyword: '" + lexeme + "'" + " Tag: " + tagstr(tag);
 }
 
 string Word::str() const {
@@ -46,7 +96,7 @@ string Word::str() const {
 }
 
 string Punctuator::repr() const {
-  return "Punctuator: '" + punc + "'" + " Tag:" + to_string(tag);
+  return "Punctuator: '" + punc + "'" + " Tag: " + tagstr(tag);
 }
 
 string Punctuator::str() const {
@@ -88,7 +138,7 @@ auto Lexer::getNextToken() -> TokenPtr {
         ins->get(); // swallow it
         peek = ins->peek();
       } while (isdigit(peek));
-      return make_shared<Num>(num);
+      return make_shared<Num>(num, line);
     }
 
     // Parse identifyer
@@ -102,8 +152,9 @@ auto Lexer::getNextToken() -> TokenPtr {
 
       auto reserved = reserved_keywords.find(id);
       if ( reserved == reserved_keywords.end()) {
-        return make_shared<Id>(id);
+        return make_shared<Id>(id, line);
       } else {
+        reserved->second->line = line;
         return reserved->second;
       }
     }
@@ -127,6 +178,7 @@ auto Lexer::getNextToken() -> TokenPtr {
     }
     auto punc = punctuators.find(punc_str);
     if (punc != punctuators.end()) {
+      punc->second->line = line;
       return punc->second;
     } else {
       cout << "Lexer: Cannot parse '" << punc_str << "' (line " << line << ")" << endl;

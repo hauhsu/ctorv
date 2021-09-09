@@ -264,7 +264,8 @@ auto Parser::match(Tag t) -> TokenPtr {
     return prevLookahead;
   }
 
-  cout << "Syntax error: expecting " << t << ", got " << lookahead->tag << endl;
+  cout << "Syntax error: expecting '" + tagstr(t) + "', got '" + tagstr(lookahead->tag) + "'" +
+    " (line " + to_string(lookahead->line) + ")" << endl;
   exit(1);
 }
 
