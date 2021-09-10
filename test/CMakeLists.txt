@@ -31,3 +31,4 @@ target_link_libraries(
 
 include(GoogleTest)
 gtest_discover_tests(LexerTest)
+gtest_discover_tests(ParserTest)

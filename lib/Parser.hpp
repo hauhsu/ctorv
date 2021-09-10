@@ -37,7 +37,7 @@ private:
   auto parseExpr() -> Addr;   // +, -
   auto parseExprStatm() -> Addr;
   auto parseRHS(Addr lhs, int precedence) -> Addr;
-  auto parseFuncCall() -> void;
+  auto parseFuncCall() -> Addr;
 
   auto parseTerm() -> shared_ptr<ASTNode>;   // *, /
   auto parseUnary() -> shared_ptr<ASTNode>;  // -
@@ -47,14 +47,16 @@ private:
   }
 
 
-  auto unaryOp(Tag tag, Addr dst, Addr addr) -> void;
-  auto binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> void;
-  auto emptyPrefixOp(Tag, Addr, Addr) -> void {
+  auto unaryOp(Tag tag, Addr dst, Addr addr) -> Addr;
+  auto binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> Addr;
+  auto groupOp(Tag, Addr, Addr) -> Addr;
+  auto callOp(Tag, Addr, Addr, Addr) -> Addr;
+  auto emptyPrefixOp(Tag, Addr, Addr) -> Addr {
     cerr << "Shouldn't be called." << endl;
     exit(1);
   }
 
-  auto emptyInfixOp(Tag, Addr, Addr, Addr) -> void {
+  auto emptyInfixOp(Tag, Addr, Addr, Addr) -> Addr {
     cerr << "Shouldn't be called." << endl;
     exit(1);
   }
@@ -82,8 +84,8 @@ private:
     PREC_CALL,        // . ()
     PREC_PRIMARY
   };
-  typedef function<void(Parser&, Tag, Addr, Addr)> PrefixFunc;
-  typedef function<void(Parser&, Tag, Addr, Addr, Addr)> InfixFunc;
+  typedef function<Addr(Parser&, Tag, Addr, Addr)> PrefixFunc;
+  typedef function<Addr(Parser&, Tag, Addr, Addr, Addr)> InfixFunc;
   struct OpRule {
     Precedence precedence;
     PrefixFunc prefixFunc;

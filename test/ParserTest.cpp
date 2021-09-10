@@ -9,3 +9,9 @@ TEST(ParsePunctuator, BasicPunctuators) {
   Parser parser;
   parser.parse(input);
 }
+
+TEST(ParseExpression, RightAssociation) {
+  stringstream input("int main(){1+2+3}");
+  Parser parser;
+  parser.parse(input);
+}

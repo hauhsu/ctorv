@@ -10,18 +10,20 @@ auto emptyInfixOp(Tag, Addr, Addr, Addr) -> void {
   exit(1);
 }
 
-auto Parser::unaryOp(Tag tag, Addr dst, Addr addr) -> void {
-  switch (tag) {
+auto Parser::unaryOp(Tag op, Addr dst, Addr addr) -> Addr {
+  switch (op) {
     case PLUS:
       cout << dst << " = " << "+" << addr << endl;
       break;
     default:
       cerr  << "Invalid Op"<< endl;
+      exit(1);
   }
+  return dst;
 }
 
-auto Parser::binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> void {
-  switch (tag) {
+auto Parser::binaryOp(Tag op, Addr dst, Addr l, Addr r) -> Addr {
+  switch (op) {
     case PLUS:
       cout << dst << " = " << l << " + " << r << endl;
       cu->emitIR(OP_ADD, dst, l, r);
@@ -32,14 +34,25 @@ auto Parser::binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> void {
       break;
     default:
       cerr  << "Invalid Op"<< endl;
+      exit(1);
   }
+  return dst;
+}
+
+auto Parser::groupOp(Tag op, Addr dst, Addr fst) -> Addr {
+  parseExpr();
+  return "";
+}
+
+auto Parser::callOp(Tag op, Addr dst, Addr fst, Addr) -> Addr {
+  return "";
 }
 
 
 Parser::Parser() {
   //              token         precedence    prefix op      infix op
   opRules.insert({SEMICOLON,   {PREC_NONE,    &Parser::emptyPrefixOp, &Parser::emptyInfixOp}});
-  opRules.insert({LEFT_PAREN,  {PREC_CALL,    &Parser::unaryOp,       &Parser::emptyInfixOp}});
+  opRules.insert({LEFT_PAREN,  {PREC_CALL,    &Parser::groupOp,       &Parser::callOp}});
   opRules.insert({RIGHT_PAREN, {PREC_NONE,    &Parser::emptyPrefixOp, &Parser::emptyInfixOp}});
   opRules.insert({ASTERISK,    {PREC_FACTOR,  &Parser::emptyPrefixOp, &Parser::binaryOp}});
   opRules.insert({PLUS,        {PREC_TERM,    &Parser::unaryOp,       &Parser::binaryOp}});
@@ -64,25 +77,13 @@ auto Parser::parse() -> shared_ptr<CompileUnit> {
   while(1) {
     lookahead = lexer.getNextToken();
     if (!lookahead) break;
-    cout << lookahead->repr() << endl;
+    //cout << lookahead->repr() << endl;
     if (lookahead->tag == Tag::TYPE) {
       parseDecl();
     }
   }
   cu->dumpIRs();
   return cu;
-}
-
-ostream &operator<< (ostream &os, const Variable& var) {
-  os <<  var.name << ":" << var.typeLexeme;
-  return os;
-}
-
-template<typename T>
-void printVector(vector<T>& v) {
-  for (auto &c: v) {
-    cout << c << endl;
-  }
 }
 
 auto Parser::parseDecl() -> void {
@@ -128,24 +129,18 @@ auto Parser::parseDecl() -> void {
     auto params = parseParams();
     match(Tag::RIGHT_PAREN);
 
-    auto f = make_shared<FunctionNode>();
-    f->name = dynamic_pointer_cast<Id>(id)->lexeme;
-    f->params = params;
+    auto f = make_shared<FunctionNode>(type->lexeme, id->lexeme, params);
     cu->addFunc(f);
 
     if (lookahead->tag == Tag::SEMICOLON) {
       match(Tag::SEMICOLON);
       cout << "Parsed function declaration: " << endl;
-      cout << "  name: " << f->name << endl;
-      cout << "  parameters: " << endl;
-      printVector(f->params);
+      cout << "  " << *f << endl;
       return;
     }
     if (lookahead->tag == Tag::LEFT_BRACE) {
       cout << "Parsed function definition: " << endl;
-      cout << "  name: " << f->name << endl;
-      cout << "  parameters: " << endl;
-      printVector(f->params);
+      cout << "  " << *f << endl;
 
       auto funcLabel = cu->newLabel(f->name);
       match(Tag::LEFT_BRACE);
@@ -224,17 +219,16 @@ auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
     auto op = lookahead;
     cout << op->repr() << endl;
     auto rule = getOpRule(op);
-    Addr rhs;
     if (precedence >= rule.precedence) {
       return lhs;
-    } else {
-      match(lookahead->tag); // swallow op
-      rhs = parseRHS(match(lookahead->tag)->str(), rule.precedence+1);
     }
 
+    match(lookahead->tag); // swallow op
+    auto rhs = parseRHS(match(lookahead->tag)->str(), rule.precedence+1);
+    
+
     auto tmp = cu->newTemp();
-    rule.infixFunc(*this, op->tag, tmp, lhs, rhs);
-    lhs = tmp;
+    lhs = rule.infixFunc(*this, op->tag, tmp, lhs, rhs);
   }
 }
 
@@ -255,7 +249,7 @@ auto Parser::parseExpr() -> Addr {
 
 auto Parser::parseExprStatm() -> Addr {
   Addr result = parseExpr();
-  match(Tag::SEMICOLON);
+  match(Tag::SEMICOLON, "Expect ';' after expression.");
   return result;
 }
 

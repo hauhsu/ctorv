@@ -9,8 +9,12 @@
 using namespace std;
 
 enum Type {
-  INT
+  TYPE_VOID,
+  TYPE_INT,
+  TYPE_DOUBLE,
 };
+
+Type strToType(const string &s);
 
 class Variable {
 public:
@@ -20,16 +24,11 @@ public:
   int initVal;
 
   Variable(string t, string n): name(n), typeLexeme(t) {
-    if (t == "int") {
-      type = INT;
-    } else {
-      cerr << "Unrecognized data type: " << t << endl;
-      exit(1);
-    }
+    type = strToType(t);
   }
   auto size() -> int {
     switch (type) {
-      case INT:
+      case TYPE_INT:
         return 4;
       default:
         cerr << "Unrecognized data type: " << type << endl;
@@ -89,12 +88,25 @@ private:
 typedef vector<Variable> Params;
 class FunctionNode: ASTNode {
 public:
+  FunctionNode(const string&, const string&, const Params&);
   auto virtual genIR(ofstream os) -> void{;}
+  friend ostream &operator<< (ostream &, const FunctionNode &);
+
+public:
   string name;
-  Type return_type;
+  Type returnType;
   Params params;
   shared_ptr<BlockNode> body;
+
 };
+
+template<typename T>
+void printVector(const vector<T>& v) {
+  for (auto &c: v) {
+    cout << c << ", ";
+  }
+}
+
 
 
 #endif /* end of include guard: AST_H_L58SO2TY */
