@@ -13,7 +13,7 @@ auto emptyInfixOp(Tag, Addr, Addr, Addr) -> void {
 auto Parser::unaryOp(Tag op, Addr dst, Addr addr) -> Addr {
   switch (op) {
     case PLUS:
-      cout << dst << " = " << "+" << addr << endl;
+      //cout << dst << " = " << "+" << addr << endl;
       break;
     default:
       cerr  << "Invalid Op"<< endl;
@@ -25,11 +25,11 @@ auto Parser::unaryOp(Tag op, Addr dst, Addr addr) -> Addr {
 auto Parser::binaryOp(Tag op, Addr dst, Addr l, Addr r) -> Addr {
   switch (op) {
     case PLUS:
-      cout << dst << " = " << l << " + " << r << endl;
+      //cout << dst << " = " << l << " + " << r << endl;
       cu->emitIR(OP_ADD, dst, l, r);
       break;
     case ASTERISK:
-      cout << dst << " = " << l << " * " << r << endl;
+      //cout << dst << " = " << l << " * " << r << endl;
       cu->emitIR(OP_MUL, dst, l, r);
       break;
     default:
@@ -217,7 +217,7 @@ auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
   //Handle Infix
   while (true) {
     auto op = lookahead;
-    cout << op->repr() << endl;
+    //cout << op->repr() << endl;
     auto rule = getOpRule(op);
     if (precedence >= rule.precedence) {
       return lhs;

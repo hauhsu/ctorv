@@ -8,13 +8,7 @@
 
 using namespace std;
 
-enum Type {
-  TYPE_VOID,
-  TYPE_INT,
-  TYPE_DOUBLE,
-};
-
-Type strToType(const string &s);
+typedef string Type;
 
 class Variable {
 public:
@@ -23,17 +17,13 @@ public:
   string typeLexeme;
   int initVal;
 
-  Variable(string t, string n): name(n), typeLexeme(t) {
-    type = strToType(t);
+  Variable(string t, string n): type(t), name(n), typeLexeme(t) {
+    ;
   }
   auto size() -> int {
-    switch (type) {
-      case TYPE_INT:
-        return 4;
-      default:
-        cerr << "Unrecognized data type: " << type << endl;
-        exit(1);
-    }
+    if (type == "int") return 4;
+    cerr << "Unrecognized data type: " << type << endl;
+    exit(1);
   }
   friend ostream &operator<< (ostream &, const Variable &);
 
@@ -102,8 +92,9 @@ public:
 
 template<typename T>
 void printVector(const vector<T>& v) {
-  for (auto &c: v) {
-    cout << c << ", ";
+  for (int i = 0; i < v.size(); i++) {
+    if (i != v.size()-1) cout << v[i] << ", ";
+    else cout << v[i];
   }
 }
 
