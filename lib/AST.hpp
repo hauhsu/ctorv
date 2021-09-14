@@ -45,41 +45,17 @@ public:
   shared_ptr<Environment> prev_scop;
 };
 
-class ASTNode {
-public:
-  ASTNode(){;}
-  auto virtual genIR(ofstream os) -> void = 0;
 
-};
-
-
-class FunctionNode;
-
-struct BlockNode:ASTNode {
+struct BlockNode {
   shared_ptr<BlockNode> parent;  // if nullptr, it is global block
   shared_ptr<Environment> symtable;
-  auto virtual genIR(ofstream os) -> void{;}
-};
-
-class ExpressionNode: ASTNode {
-  auto virtual genIR(ofstream os) -> void{;}
-};
-
-class IFNode: ASTNode {
-public:
-  auto genIR(ofstream os) -> void{;}
-
-private:
-  ExpressionNode condExp;
-  BlockNode body;
 };
 
 
 typedef vector<Variable> Params;
-class FunctionNode: ASTNode {
+class FunctionNode {
 public:
   FunctionNode(const string&, const string&, const Params&);
-  auto virtual genIR(ofstream os) -> void{;}
   friend ostream &operator<< (ostream &, const FunctionNode &);
 
 public:

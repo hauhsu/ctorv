@@ -29,19 +29,11 @@ private:
   auto parseBlock() -> shared_ptr<BlockNode>;
   auto parseStatm() -> void;
   auto parseIf() -> void;
-  auto parseAssign() -> shared_ptr<ASTNode>; // =
-  auto parseLogicOr() -> shared_ptr<ASTNode>;   // ||
-  auto parseLogicAnd() -> shared_ptr<ASTNode>;   // &&
-  auto parseEq() -> shared_ptr<ASTNode>;     // ==, !=
-  auto parseRel() -> shared_ptr<ASTNode>;    // >, <, <=, >=
   auto parseExpr() -> Addr;   // +, -
   auto parseExprStatm() -> Addr;
   auto parsePrecedence(int precedence) -> Addr;
   auto parseFuncCall() -> Addr;
 
-  auto parseTerm() -> shared_ptr<ASTNode>;   // *, /
-  auto parseUnary() -> shared_ptr<ASTNode>;  // -
-  auto parseFactor() -> shared_ptr<ASTNode>; // ID, true, false, NUMBER
   auto patchJump(unsigned jumpIR, Addr addr) -> void {
     cu->IRList[jumpIR]->addr2 = addr;
   }
