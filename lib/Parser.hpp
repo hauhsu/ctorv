@@ -36,7 +36,7 @@ private:
   auto parseRel() -> shared_ptr<ASTNode>;    // >, <, <=, >=
   auto parseExpr() -> Addr;   // +, -
   auto parseExprStatm() -> Addr;
-  auto parseRHS(Addr lhs, int precedence) -> Addr;
+  auto parsePrecedence(int precedence) -> Addr;
   auto parseFuncCall() -> Addr;
 
   auto parseTerm() -> shared_ptr<ASTNode>;   // *, /
@@ -47,19 +47,10 @@ private:
   }
 
 
-  auto unaryOp(Tag tag, Addr dst, Addr addr) -> Addr;
-  auto binaryOp(Tag tag, Addr dst, Addr l, Addr r) -> Addr;
-  auto groupOp(Tag, Addr, Addr) -> Addr;
-  auto callOp(Tag, Addr, Addr, Addr) -> Addr;
-  auto emptyPrefixOp(Tag, Addr, Addr) -> Addr {
-    cerr << "Shouldn't be called." << endl;
-    exit(1);
-  }
-
-  auto emptyInfixOp(Tag, Addr, Addr, Addr) -> Addr {
-    cerr << "Shouldn't be called." << endl;
-    exit(1);
-  }
+  auto unaryOp() -> Addr;
+  auto binaryOp(Addr) -> Addr;
+  auto groupOp() -> Addr;
+  auto callOp(Addr) -> Addr;
 
 
 
@@ -84,8 +75,8 @@ private:
     PREC_CALL,        // . ()
     PREC_PRIMARY
   };
-  typedef function<Addr(Parser&, Tag, Addr, Addr)> PrefixFunc;
-  typedef function<Addr(Parser&, Tag, Addr, Addr, Addr)> InfixFunc;
+  typedef function<Addr(Parser&)> PrefixFunc;
+  typedef function<Addr(Parser&, Addr lhs)> InfixFunc;
   struct OpRule {
     Precedence precedence;
     PrefixFunc prefixFunc;
@@ -95,6 +86,7 @@ private:
 
  /* Auxilary methods */
   auto match(Tag t, string msg="") -> TokenPtr;
-  auto getOpRule(shared_ptr<Token> op) -> OpRule;
+  auto advance() -> TokenPtr;
+  auto getOpRule(Tag opTag) -> OpRule;
 };
 #endif /* end of include guard: PARSER_CPP_UDVXJZBP */

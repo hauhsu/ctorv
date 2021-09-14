@@ -1,36 +1,42 @@
 #include "Parser.hpp"
 
-auto emptyPrefixOp(Tag, Addr, Addr) -> void {
-  cerr << "Shouldn't be called." << endl;
-  exit(1);
-}
 
-auto emptyInfixOp(Tag, Addr, Addr, Addr) -> void {
-  cerr << "Shouldn't be called." << endl;
-  exit(1);
-}
-
-auto Parser::unaryOp(Tag op, Addr dst, Addr addr) -> Addr {
-  switch (op) {
+auto Parser::unaryOp() -> Addr {
+  auto op = advance();
+  auto rhs = parsePrecedence(PREC_UNARY);
+  Addr res;
+  switch (op->tag) {
+    case MINUS:
+      res = cu->newTemp();
+      cu->emitIR(OP_SUB, res, 0, rhs);
+      break;
     case PLUS:
-      //cout << dst << " = " << "+" << addr << endl;
+      res = rhs; // do nothing
       break;
     default:
       cerr  << "Invalid Op"<< endl;
       exit(1);
   }
-  return dst;
+  return res;
 }
 
-auto Parser::binaryOp(Tag op, Addr dst, Addr l, Addr r) -> Addr {
-  switch (op) {
+auto Parser::binaryOp(Addr lhs) -> Addr {
+  auto op = advance();
+  auto prec = getOpRule(op->tag).precedence;
+  auto rhs = parsePrecedence(prec + 1);
+  auto dst = cu->newTemp();
+  switch (op->tag) {
     case PLUS:
       //cout << dst << " = " << l << " + " << r << endl;
-      cu->emitIR(OP_ADD, dst, l, r);
+      cu->emitIR(OP_ADD, dst, lhs, rhs);
+      break;
+    case MINUS:
+      //cout << dst << " = " << l << " - " << r << endl;
+      cu->emitIR(OP_SUB, dst, lhs, rhs);
       break;
     case ASTERISK:
       //cout << dst << " = " << l << " * " << r << endl;
-      cu->emitIR(OP_MUL, dst, l, r);
+      cu->emitIR(OP_MUL, dst, lhs, rhs);
       break;
     default:
       cerr  << "Invalid Op"<< endl;
@@ -39,25 +45,29 @@ auto Parser::binaryOp(Tag op, Addr dst, Addr l, Addr r) -> Addr {
   return dst;
 }
 
-auto Parser::groupOp(Tag op, Addr dst, Addr fst) -> Addr {
-  parseExpr();
-  return "";
+auto Parser::groupOp() -> Addr {
+  auto res = parseExpr();
+  match(RIGHT_PAREN);
+  return res;
 }
 
-auto Parser::callOp(Tag op, Addr dst, Addr fst, Addr) -> Addr {
+auto Parser::callOp(Addr funcName) -> Addr {
+  auto params = parseParams();
   return "";
 }
 
 
 Parser::Parser() {
-  //              token         precedence    prefix op      infix op
-  opRules.insert({SEMICOLON,   {PREC_NONE,    &Parser::emptyPrefixOp, &Parser::emptyInfixOp}});
+  //              token         precedence    prefix op               infix op
+  opRules.insert({SEMICOLON,   {PREC_NONE,    nullptr,                nullptr}});
   opRules.insert({LEFT_PAREN,  {PREC_CALL,    &Parser::groupOp,       &Parser::callOp}});
-  opRules.insert({RIGHT_PAREN, {PREC_NONE,    &Parser::emptyPrefixOp, &Parser::emptyInfixOp}});
-  opRules.insert({ASTERISK,    {PREC_FACTOR,  &Parser::emptyPrefixOp, &Parser::binaryOp}});
+  opRules.insert({RIGHT_PAREN, {PREC_NONE,    nullptr,                nullptr}});
+  opRules.insert({ASTERISK,    {PREC_FACTOR,  nullptr,                &Parser::binaryOp}});
   opRules.insert({PLUS,        {PREC_TERM,    &Parser::unaryOp,       &Parser::binaryOp}});
   opRules.insert({MINUS,       {PREC_TERM,    &Parser::unaryOp,       &Parser::binaryOp}});
-  opRules.insert({EQ,          {PREC_EQ,      &Parser::emptyPrefixOp, &Parser::binaryOp}});
+  opRules.insert({EQ,          {PREC_EQ,      nullptr,                &Parser::binaryOp}});
+  opRules.insert({NUMBER,      {PREC_NONE,    nullptr,                nullptr}});
+  opRules.insert({IDENTIFIER,  {PREC_NONE,    nullptr,                nullptr}});
   curBlock = nullptr;
 }
 
@@ -161,9 +171,9 @@ auto Parser::parseParams() -> Params {
    */
   Params params;
   if (lookahead->tag == Tag::TYPE) {
-    auto type = dynamic_pointer_cast<Word>(match(Tag::TYPE));
-    auto id = dynamic_pointer_cast<Id>(match(Tag::IDENTIFIER));
-    params.push_back(Variable(type->lexeme, id->lexeme));
+    auto type = match(Tag::TYPE);
+    auto id = match(Tag::IDENTIFIER);
+    params.push_back(Variable(type->str(), id->str()));
     if (lookahead->tag == Tag::COMMA) {
       match(Tag::COMMA);
       auto tmp = parseParams();
@@ -213,38 +223,26 @@ auto Parser::parseIf() -> void {
     patchJump(ifBranchIR, afterIfLabel);
 }
 
-auto Parser::parseRHS(Addr lhs, int precedence) -> Addr {
-  //Handle Infix
-  while (true) {
-    auto op = lookahead;
-    //cout << op->repr() << endl;
-    auto rule = getOpRule(op);
-    if (precedence >= rule.precedence) {
-      return lhs;
-    }
+auto Parser::parsePrecedence(int precedence) -> Addr {
 
-    match(lookahead->tag); // swallow op
-    auto rhs = parseRHS(match(lookahead->tag)->str(), rule.precedence+1);
-    
+  // Handle prefix
+  auto prefixFunc = getOpRule(lookahead->tag).prefixFunc;
+  if (prefixFunc) prefixFunc(*this);
 
-    auto tmp = cu->newTemp();
-    lhs = rule.infixFunc(*this, op->tag, tmp, lhs, rhs);
+  // Handle Infix
+  auto lhs = advance()->str();
+  while (getOpRule(lookahead->tag).precedence >= precedence) {
+    auto rule = getOpRule(lookahead->tag);
+    lhs = rule.infixFunc(*this, lhs);
   }
+  return lhs;
 }
 
 /*
  *
  */
 auto Parser::parseExpr() -> Addr {
-  switch (lookahead->tag) {
-    case Tag::NUMBER:
-    case Tag::IDENTIFIER:
-      return parseRHS(match(lookahead->tag)->str(), PREC_ASSIGNMENT);
-
-    default:
-      cerr << "Unexpected token " << lookahead->repr() << " for expression" << endl;
-      exit(1);
-  }
+  return parsePrecedence(PREC_ASSIGNMENT);
 }
 
 auto Parser::parseExprStatm() -> Addr {
@@ -261,9 +259,7 @@ auto Parser::parseExprStatm() -> Addr {
 
 auto Parser::match(Tag t, string msg) -> TokenPtr {
   if (lookahead->tag == t) {
-    auto prevLookahead = lookahead;
-    lookahead = lexer.getNextToken();
-    return prevLookahead;
+    return advance();
   }
   if (msg == "")
     msg = "Syntax error: expecting '" + tagstr(t) +
@@ -275,10 +271,17 @@ auto Parser::match(Tag t, string msg) -> TokenPtr {
 }
 
 
-auto Parser::getOpRule(shared_ptr<Token> op) -> OpRule {
-    auto rule = opRules.find(op->tag);
+// Get next token without check (shortcut of `match(lookahead->tag)`)
+auto Parser::advance() -> TokenPtr {
+    auto prev = lookahead;
+    lookahead = lexer.getNextToken();
+    return prev;
+}
+
+auto Parser::getOpRule(Tag opTag) -> OpRule {
+    auto rule = opRules.find(opTag);
     if ( rule == opRules.end()) {
-      cerr << "Invalid operator: " << op->repr() << endl;
+      cerr << "Invalid operator: " << tagstr(opTag) << endl;
       exit(1);
     }
     return rule->second;
