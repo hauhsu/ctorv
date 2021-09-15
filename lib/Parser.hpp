@@ -33,10 +33,7 @@ private:
   auto parseExprStatm() -> Addr;
   auto parsePrecedence(int precedence) -> Addr;
   auto parseFuncCall() -> Addr;
-
-  auto patchJump(unsigned jumpIR, Addr addr) -> void {
-    cu->IRList[jumpIR]->addr2 = addr;
-  }
+  auto parseReturn() -> void;
 
 
   auto unaryOp() -> Addr;

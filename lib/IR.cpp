@@ -5,6 +5,7 @@ string opstr(OP op) {
   switch (op)
   {
       case OP_NOP:  return "nop";
+      case OP_JUMP:  return "jump";
       case OP_BEQ:  return "beq";
       case OP_BNE:  return "bne";
       case OP_BLT:  return "blt";
@@ -16,6 +17,9 @@ string opstr(OP op) {
       case OP_ADD:  return "add";
       case OP_SUB:  return "sub";
       case OP_MUL:  return "mul";
+      case OP_EQ:  return "eq";
+      case OP_PARAM:  return "param";
+      case OP_RETVAL:  return "retval";
       default:      
         cerr << "Unknown OP: " << op << endl;
         exit(1);
@@ -40,6 +44,6 @@ ostream &operator<< (ostream &os, const IR& ir) {
   /* OP_ADD, */
   /* OP_SUB, */
   /* OP_MUL, */
-  os << opstr(ir.op) << ", " << ir.addr0 << ", " << ir.addr1  << ", " << ir.addr2;
+  os << opstr(ir.op) << "\t" << ir.addr0 << ", " << ir.addr1  << ", " << ir.addr2;
   return os;
 }

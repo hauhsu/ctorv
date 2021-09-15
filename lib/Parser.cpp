@@ -11,6 +11,7 @@ auto Parser::unaryOp() -> Addr {
       cu->emitIR(OP_SUB, res, 0, rhs);
       break;
     case PLUS:
+    case LEFT_PAREN:
       res = rhs; // do nothing
       break;
     default:
@@ -38,6 +39,9 @@ auto Parser::binaryOp(Addr lhs) -> Addr {
       //cout << dst << " = " << l << " * " << r << endl;
       cu->emitIR(OP_MUL, dst, lhs, rhs);
       break;
+    case EQ:
+      cu->emitIR(OP_EQ, dst, lhs, rhs);
+      break;
     default:
       error("Invalid binary operator: " + tagstr(op->tag));
   }
@@ -51,7 +55,24 @@ auto Parser::groupOp() -> Addr {
 }
 
 auto Parser::callOp(Addr funcName) -> Addr {
-  auto params = parseParams();
+  match(LEFT_PAREN);
+  vector<Addr> params;
+  if (lookahead->tag != RIGHT_PAREN) {
+    do {
+      params.push_back(parseExpr());
+    } while (lookahead->tag == COMMA && match(COMMA));
+    match(RIGHT_PAREN);
+  }
+
+  auto funcSignature = cu->functions.find(funcName);
+  if (funcSignature == cu->functions.end()) {
+    error("Implicit declaration of function: " + funcName);
+  }
+  for (auto &p: params) {
+    cu->emitIR(OP_PARAM, p, "", "");
+  }
+  cu->emitIR(OP_CALL, funcName, "", "");
+
   return "";
 }
 
@@ -67,6 +88,10 @@ Parser::Parser() {
   opRules.insert({EQ,          {PREC_EQ,      nullptr,                &Parser::binaryOp}});
   opRules.insert({NUMBER,      {PREC_NONE,    nullptr,                nullptr}});
   opRules.insert({IDENTIFIER,  {PREC_NONE,    nullptr,                nullptr}});
+  opRules.insert({EQ,          {PREC_EQ,      nullptr,                &Parser::binaryOp}});
+  opRules.insert({RETURN,      {PREC_NONE,    nullptr,                nullptr}});
+  opRules.insert({RIGHT_BRACE, {PREC_NONE,    nullptr,                nullptr}});
+  opRules.insert({LEFT_BRACE,  {PREC_NONE,    nullptr,                nullptr}});
   curBlock = nullptr;
 }
 
@@ -152,9 +177,7 @@ auto Parser::parseDecl() -> void {
       cout << "  " << *f << endl;
 
       auto funcLabel = cu->newLabel(f->name);
-      match(Tag::LEFT_BRACE);
       f->body = parseBlock();
-      match(Tag::RIGHT_BRACE);
       return;
     }
     cout << "Syntax error." << endl;
@@ -183,6 +206,7 @@ auto Parser::parseParams() -> Params {
 }
 
 auto Parser::parseBlock() -> shared_ptr<Block> {
+  match(Tag::LEFT_BRACE);
   auto blk = make_shared<Block>();
   blk->parent = curBlock;
   curBlock = blk;
@@ -191,19 +215,26 @@ auto Parser::parseBlock() -> shared_ptr<Block> {
     parseStatm();
   }
   curBlock = blk->parent;
+  match(Tag::RIGHT_BRACE);
   return blk;
 }
 
 auto Parser::parseStatm() -> void {
-  if (lookahead->tag == Tag::IF) {
-    parseIf();
-  }
-  if (lookahead->tag == Tag::TYPE) {
-    parseDecl();
-  }
-
-  else {
-    parseExprStatm();
+  switch (lookahead->tag) {
+    case Tag::IF:
+      parseIf();
+      break;
+    case Tag::TYPE:
+      parseDecl();
+      break;
+    case Tag::RETURN:
+      parseReturn();
+      break;
+    case Tag::LEFT_BRACE:
+      parseBlock();
+      break;
+    default:
+      parseExprStatm();
   }
 }
 
@@ -212,14 +243,21 @@ auto Parser::parseIf() -> void {
     match(Tag::LEFT_PAREN);  // (
     auto result = parseExpr();
     match(Tag::RIGHT_PAREN); // )
-    match(Tag::LEFT_BRACE);  // {
     //jump over "if block" if condition evaluates 0 (false)
-    auto ifBranchIR = cu->emitIR(OP_BEQ, result, "0", "patchme"); 
+    auto ifBranchIR = cu->emitIR(OP_BEQ, result, "0", "patchme");
     parseStatm();
-    match(Tag::RIGHT_BRACE);  // }
-    auto afterIfLabel = cu->newLabel();
+
+    auto jumpBeforeElseStart = cu->emitJump("patchme"); // 'if block' should jump over 'else block'.
+    if (lookahead->tag == Tag::ELSE) {
+      match(Tag::ELSE);
+      auto elseStart = cu->newLabel();
+      cu->patchBranch(ifBranchIR, elseStart);
+      parseStatm();
+    }
     //until new we know where is the end of "if", backpatching.
-    patchJump(ifBranchIR, afterIfLabel);
+    auto labelAfterElse = cu->newLabel();
+    cu->patchJump(jumpBeforeElseStart, labelAfterElse);
+
 }
 
 auto Parser::parsePrecedence(int precedence) -> Addr {
@@ -237,9 +275,6 @@ auto Parser::parsePrecedence(int precedence) -> Addr {
   return lhs;
 }
 
-/*
- *
- */
 auto Parser::parseExpr() -> Addr {
   return parsePrecedence(PREC_ASSIGNMENT);
 }
@@ -248,6 +283,12 @@ auto Parser::parseExprStatm() -> Addr {
   Addr result = parseExpr();
   match(Tag::SEMICOLON, "Expect ';' after expression.");
   return result;
+}
+
+auto Parser::parseReturn() -> void {
+  match(Tag::RETURN);
+  auto retAddr = parseExprStatm();
+  cu->emitReturn(retAddr);
 }
 
 
@@ -272,6 +313,7 @@ auto Parser::match(Tag t, string msg) -> TokenPtr {
 
 // Get next token without check (shortcut of `match(lookahead->tag)`)
 auto Parser::advance() -> TokenPtr {
+    cout << "Read token " << lookahead->str() << endl;
     auto prev = lookahead;
     lookahead = lexer.getNextToken();
     return prev;

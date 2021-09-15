@@ -8,6 +8,7 @@ enum OP{
   OP_NOP,
 
   // branches
+  OP_JUMP,    // unconditional jump
   OP_BEQ,     // ==
   OP_BNE,     // !=
   OP_BLT,     // <
@@ -23,6 +24,13 @@ enum OP{
   OP_ADD,
   OP_SUB,
   OP_MUL,
+
+  // Compare
+  OP_EQ,
+
+  // function param
+  OP_PARAM,
+  OP_RETVAL,
 };
 
 typedef string Addr;

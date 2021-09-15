@@ -27,6 +27,14 @@ public:
     return name;
   }
 
+  auto patchBranch(unsigned branchIR, Addr addr) -> void {
+    IRList[branchIR]->addr2 = addr;
+  }
+
+  auto patchJump(unsigned jumpIR, Addr addr) -> void {
+    IRList[jumpIR]->addr0 = addr;
+  }
+
   auto addFunc(shared_ptr<Function>) -> void;
   vector<shared_ptr<Environment>> symbolTables;
   unordered_map<string, shared_ptr<Function>> functions;
@@ -39,11 +47,22 @@ public:
     return IRList.size()-1;
   }
 
+  auto emitJump(Addr target) -> unsigned {
+    IRList.push_back(make_shared<IR>(OP_JUMP, target, "", ""));
+    return IRList.size()-1;
+  }
+  auto emitReturn(Addr retValAddr="") -> unsigned {
+    if (retValAddr != "") {
+      IRList.push_back(make_shared<IR>(OP_RETVAL, retValAddr, "", ""));
+    }
+    IRList.push_back(make_shared<IR>(OP_RETURN, "", "", ""));
+    return IRList.size()-1;
+  }
+
   auto dumpIRs() -> void {
     for (int i = 0; i < IRList.size(); i++) {
       auto l = labelList.find(i);
-      if (l != labelList.end())
-        cout << l->second << ": ";
+      if (l != labelList.end()) cout << l->second << ": ";
       cout << "\t" << *IRList[i] << endl;
     }
   }
