@@ -14,7 +14,7 @@ auto Parser::unaryOp() -> Addr {
       res = rhs; // do nothing
       break;
     default:
-      cerr  << "Invalid Op"<< endl;
+      error("Invalid unary operator: " + tagstr(op->tag));
       exit(1);
   }
   return res;
@@ -39,8 +39,7 @@ auto Parser::binaryOp(Addr lhs) -> Addr {
       cu->emitIR(OP_MUL, dst, lhs, rhs);
       break;
     default:
-      cerr  << "Invalid Op"<< endl;
-      exit(1);
+      error("Invalid binary operator: " + tagstr(op->tag));
   }
   return dst;
 }
@@ -281,9 +280,13 @@ auto Parser::advance() -> TokenPtr {
 auto Parser::getOpRule(Tag opTag) -> OpRule {
     auto rule = opRules.find(opTag);
     if ( rule == opRules.end()) {
-      cerr << "Invalid operator: " << tagstr(opTag) << endl;
-      exit(1);
+      error("Invalid operator: '" + tagstr(opTag) + "'");
     }
     return rule->second;
 }
 
+
+auto Parser::error(string msg) -> void {
+  cerr << msg << endl;
+  exit(1);
+}

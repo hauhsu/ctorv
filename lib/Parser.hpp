@@ -80,5 +80,6 @@ private:
   auto match(Tag t, string msg="") -> TokenPtr;
   auto advance() -> TokenPtr;
   auto getOpRule(Tag opTag) -> OpRule;
+  auto error(string msg) -> void;
 };
 #endif /* end of include guard: PARSER_CPP_UDVXJZBP */
