@@ -9,7 +9,7 @@ auto CompileUnit::insertIR(shared_ptr<IR> ir) -> void {
   IRList.push_back(ir);
 }
 
-auto CompileUnit::addFunc(shared_ptr<FunctionNode> f) -> void {
+auto CompileUnit::addFunc(shared_ptr<Function> f) -> void {
   functions.insert({f->name, f});
 }
 

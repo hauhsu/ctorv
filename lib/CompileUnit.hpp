@@ -27,9 +27,9 @@ public:
     return name;
   }
 
-  auto addFunc(shared_ptr<FunctionNode>) -> void;
+  auto addFunc(shared_ptr<Function>) -> void;
   vector<shared_ptr<Environment>> symbolTables;
-  unordered_map<string, shared_ptr<FunctionNode>> functions;
+  unordered_map<string, shared_ptr<Function>> functions;
   vector<shared_ptr<IR>> IRList;
   typedef string Label;
   unordered_map<int, Label> labelList;

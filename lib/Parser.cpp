@@ -139,7 +139,7 @@ auto Parser::parseDecl() -> void {
     auto params = parseParams();
     match(Tag::RIGHT_PAREN);
 
-    auto f = make_shared<FunctionNode>(type->lexeme, id->lexeme, params);
+    auto f = make_shared<Function>(type->lexeme, id->lexeme, params);
     cu->addFunc(f);
 
     if (lookahead->tag == Tag::SEMICOLON) {
@@ -183,8 +183,8 @@ auto Parser::parseParams() -> Params {
   return params;
 }
 
-auto Parser::parseBlock() -> shared_ptr<BlockNode> {
-  auto blk = make_shared<BlockNode>();
+auto Parser::parseBlock() -> shared_ptr<Block> {
+  auto blk = make_shared<Block>();
   blk->parent = curBlock;
   curBlock = blk;
 

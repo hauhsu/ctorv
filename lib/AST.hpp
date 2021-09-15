@@ -46,23 +46,23 @@ public:
 };
 
 
-struct BlockNode {
-  shared_ptr<BlockNode> parent;  // if nullptr, it is global block
+struct Block {
+  shared_ptr<Block> parent;  // if nullptr, it is global block
   shared_ptr<Environment> symtable;
 };
 
 
 typedef vector<Variable> Params;
-class FunctionNode {
+class Function {
 public:
-  FunctionNode(const string&, const string&, const Params&);
-  friend ostream &operator<< (ostream &, const FunctionNode &);
+  Function(const string&, const string&, const Params&);
+  friend ostream &operator<< (ostream &, const Function &);
 
 public:
   string name;
   Type returnType;
   Params params;
-  shared_ptr<BlockNode> body;
+  shared_ptr<Block> body;
 
 };
 

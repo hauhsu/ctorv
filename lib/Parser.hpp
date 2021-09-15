@@ -26,7 +26,7 @@ private:
   auto parse() -> shared_ptr<CompileUnit>;
   auto parseDecl() -> void;  // add to **functions** or **symTables**
   auto parseParams() -> Params;
-  auto parseBlock() -> shared_ptr<BlockNode>;
+  auto parseBlock() -> shared_ptr<Block>;
   auto parseStatm() -> void;
   auto parseIf() -> void;
   auto parseExpr() -> Addr;   // +, -
@@ -51,7 +51,7 @@ private:
   shared_ptr<Token> lookahead;
   shared_ptr<CompileUnit> cu;
   shared_ptr<Environment> curSymTable;
-  shared_ptr<BlockNode> curBlock;
+  shared_ptr<Block> curBlock;
 
   // for Pratt expression parser
   enum Precedence {
