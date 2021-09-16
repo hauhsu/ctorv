@@ -248,10 +248,10 @@ auto Parser::parseIf() -> void {
     parseStatm();
 
     auto jumpBeforeElseStart = cu->emitJump("patchme"); // 'if block' should jump over 'else block'.
+    auto elseStart = cu->newLabel();
+    cu->patchBranch(ifBranchIR, elseStart);
     if (lookahead->tag == Tag::ELSE) {
       match(Tag::ELSE);
-      auto elseStart = cu->newLabel();
-      cu->patchBranch(ifBranchIR, elseStart);
       parseStatm();
     }
     //until new we know where is the end of "if", backpatching.
